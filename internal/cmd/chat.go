@@ -2,34 +2,38 @@ package cmd
 
 import (
 	"context"
+	"io"
 	"log/slog"
+	"os"
 	"strings"
 
 	"github.com/JackKCWong/vichat/internal/vichat"
 	"github.com/henomis/lingoose/chat"
 	"github.com/henomis/lingoose/prompt"
+	"github.com/spf13/cobra"
 )
 
-func sendChat() {
-	messages := chat.New(
-		chat.PromptMessage{
-			Type:   chat.MessageTypeSystem,
-			Prompt: prompt.New("You are a professional joke writer"),
-		},
-		chat.PromptMessage{
-			Type:   chat.MessageTypeUser,
-			Prompt: prompt.New("Write a joke about a goose"),
-		},
-	)
+var ChatCmd = &cobra.Command{
+	Use:   "chat",
+	Short: "read a chat from stdin and send to LLM chat",
+	Run: func(cmd *cobra.Command, args []string) {
 
-	chatClient := vichat.New()
-	res, err := chatClient.Chat(context.TODO(), messages)
-	if err != nil {
-		slog.Error("failed", "err", err.Error())
-		return
-	}
+		input, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			slog.Error("failed to read input", "err", err)
+			return
+		}
 
-	println(res)
+		messages := chat.New(CreatePrompts(string(input))...)
+		chatClient := vichat.New()
+		res, err := chatClient.Chat(context.TODO(), messages)
+		if err != nil {
+			slog.Error("failed", "err", err.Error())
+			return
+		}
+
+		println(res)
+	},
 }
 
 func CreatePrompts(text string) []chat.PromptMessage {

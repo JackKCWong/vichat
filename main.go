@@ -11,13 +11,14 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "vichat",
 	Short: "vichat is a LLM chat cli",
-	Args: cobra.MinimumNArgs(1),
+	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(cmd.TokCmd)
+	rootCmd.AddCommand(cmd.ChatCmd)
 }
 
 func main() {
