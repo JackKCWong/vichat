@@ -24,3 +24,9 @@ endfunction
 
 command! -buffer Chat call SendToChat()
 command! -buffer Try call TryToChat()
+
+nnoremap <buffer> <c-s> :Chat<cr>
+nnoremap <buffer> <c-t> :Try<cr>
+
+inoremap <buffer> <c-s> <esc>:Chat<cr>
+inoremap <buffer> <c-t> <esc>:Try<cr>
