@@ -1,13 +1,12 @@
-package cmd_test
+package cmd
 
 import (
+	"strings"
 	"testing"
-
-	"github.com/JackKCWong/vichat/internal/cmd"
 )
 
 func TestCreatePrompts(t *testing.T) {
-	prompts := cmd.CreatePrompts(`SYSTEM: You are
+	script := `SYSTEM: You are
 a helpful assistant.
 
 USER: tell me a
@@ -15,7 +14,8 @@ joke about goose
 
 AI: why is
 the goose a comedian
-`)
+`
+	prompts := CreatePrompts(strings.Split(script, "\n"))
 
 	if len(prompts) != 3 {
 		t.Errorf("Expected 2 prompts, got %d", len(prompts))
@@ -40,4 +40,24 @@ the goose a comedian
 		t.Errorf("Expected prompt string, got %s", prompts[2].Prompt.String())
 	}
 
+}
+
+func TestGetLLMParams(t *testing.T) {
+	cfg1 := "# temperature=0.1, max_tokens=100"
+	if getTemperature(cfg1) != 0.1 {
+		t.Errorf("Expected temperature to be 0.1, got %f", getTemperature(cfg1))
+	}
+
+	if getMaxTokens(cfg1) != 100 {
+		t.Errorf("Expected max_tokens to be 100, got %d", getMaxTokens(cfg1))
+	}
+
+	cfg2 := "# temperature: 0    max_tokens: 200"
+	if getTemperature(cfg2) != 0 {
+		t.Errorf("Expected temperature to be 0, got %f", getTemperature(cfg2))
+	}
+
+	if getMaxTokens(cfg2) != 200 {
+		t.Errorf("Expected max_tokens to be 200, got %d", getMaxTokens(cfg2))
+	}
 }
