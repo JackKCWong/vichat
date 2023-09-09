@@ -9,12 +9,15 @@ I find it easier to use text files to test different system prompts on the same 
 ## Installation
 
 ```
-export OPENAI_API_KEY=<your LLM api key>
-export OPENAI_API_BASE=<your LLM api base>
 go install github.com/JackKCWong/vichat@latest
 ```
 
 ## Usage
+
+```
+export OPENAI_API_KEY=<your LLM api key>
+export OPENAI_API_BASE=<your LLM api base>
+```
 
 ```
 cat <<_EOF | vichat chat
