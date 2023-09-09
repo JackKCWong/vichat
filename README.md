@@ -48,4 +48,4 @@ When in Vim (normal mode or insert mode):
 
 * `ctrl+s` to send the full chat, the result will be appended to the end of the current buffer, just like a usual chat experience.
 
-* `ctrl+t` to send the full chat, but the result will be put to a new buffer, useful when you want to ask a simple question that doesn't require context.
+* `ctrl+t` to send the full chat, but the result will be put to a new buffer, useful when you want to ask many simple questions that doesn't require context. Saves token usages.
