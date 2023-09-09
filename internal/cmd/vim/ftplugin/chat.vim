@@ -1,4 +1,3 @@
-let g:markdown_fenced_languages = ['html', 'js=javascript', 'rust', 'go', 'java']
 
 function! SendToChat()
     " Redirect the content of the current buffer to the external command's stdin

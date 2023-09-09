@@ -15,7 +15,7 @@ import (
 var vimPlugins embed.FS
 
 var InstallCmd = &cobra.Command{
-	Use:     "install-vim",
+	Use:     "install-vim-plugin",
 	Short:   "install the vim plugin",
 	Aliases: []string{"i"},
 	Run: func(cmd *cobra.Command, args []string) {

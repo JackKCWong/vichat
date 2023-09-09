@@ -8,18 +8,21 @@ I find it easier to use text files to test different system prompts on the same 
 
 ## Installation
 
-```
+```bash
 go install github.com/JackKCWong/vichat@latest
+
+# install vim plugin
+vichat i 
 ```
 
 ## Usage
 
-```
+```bash
 export OPENAI_API_KEY=<your LLM api key>
 export OPENAI_API_BASE=<your LLM api base>
 ```
 
-```
+```bash
 cat <<_EOF | vichat chat
 SYSTEM: You are a professional joke writer
 
@@ -33,9 +36,7 @@ _EOF
 
 Use in Vim:
 
-```
-vichat install-vim
-
+```bash
 cat <<_EOF > test.chat
 SYSTEM: You are a professional joke writer
 
@@ -54,3 +55,12 @@ When in Vim (normal mode or insert mode):
 * `ctrl+s` to send the full chat, the result will be appended to the end of the current buffer, just like a usual chat experience.
 
 * `ctrl+t` to send the full chat, but the result will be put to a new buffer, useful when you want to ask many simple questions that doesn't require context. Saves token usages.
+
+
+Vim tips:
+
+* put this line in your `~/.vimrc` to enable code block highlight in markdown
+
+```vim
+let g:markdown_fenced_languages = ['html', 'js=javascript', 'rust', 'go', 'java']
+```
