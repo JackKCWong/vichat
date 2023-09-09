@@ -1,4 +1,4 @@
-
+let g:markdown_fenced_languages = ['html', 'js=javascript', 'rust', 'go', 'java']
 
 function! SendToChat()
     " Redirect the content of the current buffer to the external command's stdin
@@ -9,6 +9,7 @@ function! SendToChat()
     call append(line('$'), [""] + output + ["", "USER: "])
 
     norm! G
+    norm! A
 endfunction
 
 function! TryToChat()
@@ -16,10 +17,9 @@ function! TryToChat()
     let output = systemlist("vichat chat", getline(1, '$'))
 
     exe "vnew"
-    setlocal buftype=nofile nobuflisted
-    call append(line('$'), output)
+    setlocal buftype=nofile nobuflisted syntax=markdown
 
-    norm! G
+    call append(line('$'), output)
 endfunction
 
 command! -buffer Chat call SendToChat()
@@ -27,6 +27,9 @@ command! -buffer Try call TryToChat()
 
 nnoremap <buffer> <c-s> :Chat<cr>
 nnoremap <buffer> <c-t> :Try<cr>
+nnoremap <buffer> <leader><cr> :Chat<cr>
+nnoremap <buffer> <leader>s :Chat<cr>
+nnoremap <buffer> <leader>t :Try<cr>
 
 inoremap <buffer> <c-s> <esc>:Chat<cr>
 inoremap <buffer> <c-t> <esc>:Try<cr>
