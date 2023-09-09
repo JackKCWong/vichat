@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -10,8 +11,10 @@ import (
 	"strings"
 
 	"github.com/JackKCWong/vichat/internal/vichat"
+	markdown "github.com/MichaelMure/go-term-markdown"
 	"github.com/henomis/lingoose/chat"
 	"github.com/henomis/lingoose/prompt"
+	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 )
 
@@ -83,7 +86,17 @@ var ChatCmd = &cobra.Command{
 			return
 		}
 
-		println(res)
+		if isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stderr.Fd()) {
+			if strings.Contains(res, "```") {
+				fmt.Println()
+				fmt.Println(string(markdown.Render(res, 90, 4)))
+				return
+			}
+		}
+
+		fmt.Println()
+		fmt.Println(res)
+		fmt.Println()
 	},
 }
 
