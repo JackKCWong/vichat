@@ -22,6 +22,17 @@ export OPENAI_API_KEY=<your LLM api key>
 export OPENAI_API_BASE=<your LLM api base>
 ```
 
+Chat directly on cli:
+
+```bash
+vichat chat [options] tell me a joke about Go
+# or
+vichat chat -t 0.1 -m 100
+tell me a joke about Golang
+^D
+```
+
+Chat with history:
 ```bash
 cat <<_EOF | vichat chat
 SYSTEM: You are a professional joke writer
@@ -41,10 +52,6 @@ cat <<_EOF > test.chat
 SYSTEM: You are a professional joke writer
 
 USER: tell me a joke about goose
-
-AI: Why did the goose go to the doctor? Because he was feeling a little down!
-
-USER: Why did it feel down?
 _EOF
 
 vim test.chat

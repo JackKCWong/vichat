@@ -16,30 +16,67 @@ import (
 )
 
 const DefaultTemperature = 0.7
-const DefaultMaxTokens = 256
+const DefaultMaxTokens = 1000
+const DefaultSystemPrompt = "SYSTEM: You are a helpful assistant."
+
+func init() {
+	ChatCmd.Flags().IntP("max_tokens", "m", DefaultMaxTokens, "max token for response")
+	ChatCmd.Flags().Float32P("temperature", "t", DefaultTemperature, "temperature, higher means more randomness.")
+	// ChatCmd.Flags().StringP("role", "r", "assistant", "each role maps to a system prompt defined in ~/.vichat.yaml")
+}
 
 var ChatCmd = &cobra.Command{
 	Use:   "chat",
 	Short: "read a chat from stdin and send to LLM chat",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		input, err := io.ReadAll(os.Stdin)
-		if err != nil {
-			slog.Error("failed to read input", "err", err)
-			return
+		input := ""
+		if len(args) == 0 {
+			stdin, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				slog.Error("failed to read input", "err", err)
+				return
+			}
+
+			input = string(stdin)
+		} else {
+			input = strings.Join(args, " ")
 		}
 
-		lines := strings.Split(string(input), "\n")
+		var f = cmd.Flags()
 		var temperature float32 = DefaultTemperature
-		maxTokens := DefaultMaxTokens
+		var maxTokens int = DefaultMaxTokens
+
+		lines := strings.Split(string(input), "\n")
 		if strings.HasPrefix(lines[0], "#") {
 			temperature = getTemperature(lines[0])
 			maxTokens = getMaxTokens(lines[0])
 			lines = lines[0:]
+		} else {
+			if m, err := f.GetInt("max_tokens"); err == nil {
+				maxTokens = m
+			}
+
+			if t, err := f.GetFloat32("temperature"); err == nil {
+				temperature = t
+			}
 		}
 
 		chatClient := vichat.New().WithTemperature(temperature).WithMaxTokens(maxTokens)
-		messages := chat.New(CreatePrompts(lines)...)
+		prompts := CreatePrompts(lines)
+		if len(prompts) == 0 {
+			slog.Error("invalid input")
+			return
+		}
+
+		if prompts[0].Type != chat.MessageTypeSystem {
+			prompts = append([]chat.PromptMessage{{
+				Type:   chat.MessageTypeSystem,
+				Prompt: prompt.New(DefaultSystemPrompt),
+			}}, prompts...)
+		}
+
+		messages := chat.New(prompts...)
 		res, err := chatClient.Chat(context.TODO(), messages)
 		if err != nil {
 			slog.Error("failed", "err", err.Error())
@@ -52,7 +89,7 @@ var ChatCmd = &cobra.Command{
 
 func CreatePrompts(lines []string) []chat.PromptMessage {
 	prompts := make([]chat.PromptMessage, 0)
-	var messageType chat.MessageType
+	var messageType chat.MessageType = chat.MessageTypeUser
 	var message strings.Builder
 	for _, line := range lines {
 		if line == "" {
