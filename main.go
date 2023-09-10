@@ -12,7 +12,8 @@ var rootCmd = &cobra.Command{
 	Use:   "vichat",
 	Short: "vichat is a LLM chat cli",
 	Args:  cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(c *cobra.Command, args []string) {
+		cmd.ChatCmd.Run(c, args)
 	},
 }
 

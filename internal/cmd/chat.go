@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -20,7 +21,7 @@ import (
 
 const DefaultTemperature = 0.7
 const DefaultMaxTokens = 1000
-const DefaultSystemPrompt = "SYSTEM: You are a helpful assistant."
+const DefaultSystemPrompt = "You are a helpful assistant."
 
 func init() {
 	ChatCmd.Flags().IntP("max_tokens", "m", DefaultMaxTokens, "max token for response")
@@ -73,7 +74,9 @@ var ChatCmd = &cobra.Command{
 			return
 		}
 
-		if prompts[0].Type != chat.MessageTypeSystem {
+		var isFirst = false
+		if len(prompts) == 1 && prompts[0].Type != chat.MessageTypeSystem {
+			isFirst = true
 			prompts = append([]chat.PromptMessage{{
 				Type:   chat.MessageTypeSystem,
 				Prompt: prompt.New(DefaultSystemPrompt),
@@ -81,7 +84,7 @@ var ChatCmd = &cobra.Command{
 		}
 
 		messages := chat.New(prompts...)
-		res, err := chatClient.Chat(context.TODO(), messages)
+		resp, err := chatClient.Chat(context.TODO(), messages)
 		if err != nil {
 			slog.Error("failed", "err", err.Error())
 			return
@@ -89,15 +92,55 @@ var ChatCmd = &cobra.Command{
 
 		term, _ := f.GetBool("term")
 
-		if term && isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stderr.Fd()) {
-			if strings.Contains(res, "```") {
-				fmt.Println()
-				fmt.Println(string(markdown.Render(res, 90, 4)))
-				return
-			}
-		}
+		if isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stderr.Fd()) {
+			if term {
+				// only print response to terminal
+				if strings.Contains(resp, "```") {
+					fmt.Println()
+					resp = string(markdown.Render(resp, 90, 4))
+				}
 
-		fmt.Println(res)
+				fmt.Println()
+				fmt.Println(resp)
+				fmt.Println()
+			} else if isFirst {
+				// open the full chat in vim
+				tmpf, err := os.CreateTemp(os.TempDir(), "*.chat")
+				if err != nil {
+					slog.Error("failed to create temp file", "err", err.Error())
+					fmt.Println(resp)
+				}
+
+				for _, p := range prompts {
+					prefix := ""
+					switch p.Type {
+					case chat.MessageTypeSystem:
+						prefix = "SYSTEM: "
+					case chat.MessageTypeUser:
+						prefix = "USER: "
+					case chat.MessageTypeAssistant:
+						prefix = "AI: "
+					}
+
+					fmt.Fprintf(tmpf, "%s%s\n\n", prefix, strings.Trim(p.Prompt.String(), "\r\n"))
+				}
+
+				fmt.Fprintf(tmpf, "AI: %s\n\nUSER: ", resp)
+				tmpf.Close()
+
+				// invoke vim using cmd and open tmpf
+				cmd := exec.Command("vim", tmpf.Name())
+				cmd.Stdin = os.Stdin
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+
+				cmd.Run()
+			}
+		} else {
+			// probably in vim mode
+			// just output the response
+			fmt.Println(resp)
+		}
 	},
 }
 
