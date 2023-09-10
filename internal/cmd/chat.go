@@ -25,6 +25,7 @@ const DefaultSystemPrompt = "SYSTEM: You are a helpful assistant."
 func init() {
 	ChatCmd.Flags().IntP("max_tokens", "m", DefaultMaxTokens, "max token for response")
 	ChatCmd.Flags().Float32P("temperature", "t", DefaultTemperature, "temperature, higher means more randomness.")
+	ChatCmd.Flags().BoolP("term", "o", false, "print to terminal")
 	// ChatCmd.Flags().StringP("role", "r", "assistant", "each role maps to a system prompt defined in ~/.vichat.yaml")
 }
 
@@ -86,7 +87,9 @@ var ChatCmd = &cobra.Command{
 			return
 		}
 
-		if isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stderr.Fd()) {
+		term, _ := f.GetBool("term")
+
+		if term && isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stderr.Fd()) {
 			if strings.Contains(res, "```") {
 				fmt.Println()
 				fmt.Println(string(markdown.Render(res, 90, 4)))
