@@ -18,6 +18,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
+	rootCmd.Flags().AddFlagSet(cmd.ChatCmd.Flags())
 	rootCmd.AddCommand(cmd.TokCmd)
 	rootCmd.AddCommand(cmd.ChatCmd)
 	rootCmd.AddCommand(cmd.InstallCmd)

@@ -33,7 +33,7 @@ tell me a joke about Golang
 # or output to terminal directly
 vichat chat -o tell me a joke about Vim
 
-# or just simply, note that it does not support the chat opts
+# or just simply
 vichat tell me a joke about Vim
 ```
 
