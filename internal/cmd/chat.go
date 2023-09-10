@@ -94,9 +94,7 @@ var ChatCmd = &cobra.Command{
 			}
 		}
 
-		fmt.Println()
 		fmt.Println(res)
-		fmt.Println()
 	},
 }
 
