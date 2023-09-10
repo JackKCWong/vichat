@@ -1,13 +1,18 @@
-setlocal filetype=markdown
-
-syntax match aiHighlight "^AI:\s" contains=ALL
-" syntax match userHighlight "^USER:\s" contains=ALL
-
-hi aiHighlight ctermbg=blue guibg=blue
-
-" hi userHighlight ctermbg=green guibg=green
-
 if exists("b:current_syntax")
     finish
 endif
+
+
+setlocal filetype=markdown
+
+syntax match sysLine /SYSTEM: .*/
+hi def link sysLine DiffAdd
+
+syntax match aiLine /AI: .*/
+hi def link aiLine DiffText
+
+syntax match userLine /USER: .*/
+hi def link userLine DiffChange
+
 let b:current_syntax = "chat"
+

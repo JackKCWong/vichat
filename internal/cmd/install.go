@@ -1,4 +1,4 @@
-package cmd 
+package cmd
 
 import (
 	"embed"
@@ -46,8 +46,11 @@ func installFiles(fs embed.FS, path, dest string) {
 		}
 		defer srcFs.Close()
 
-		io.Copy(destFs, srcFs)
-		log.Printf("installed %s", destFs.Name())
+		if _, err := io.Copy(destFs, srcFs); err != nil {
+			log.Printf("failed to install %s", destFs.Name())
+		} else {
+			log.Printf("installed %s", destFs.Name())
+		}
 	}
 }
 
