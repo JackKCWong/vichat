@@ -111,6 +111,7 @@ var ChatCmd = &cobra.Command{
 					fmt.Println(resp)
 				}
 
+				fmt.Fprintf(tmpf, "# temperature=%.1f, max_tokens=%d\n\n", temperature, maxTokens)
 				for _, p := range prompts {
 					prefix := ""
 					switch p.Type {
@@ -129,7 +130,7 @@ var ChatCmd = &cobra.Command{
 				tmpf.Close()
 
 				// invoke vim using cmd and open tmpf
-				cmd := exec.Command("vim", tmpf.Name())
+				cmd := exec.Command("vim", "-c", "/AI: ", tmpf.Name())
 				cmd.Stdin = os.Stdin
 				cmd.Stdout = os.Stdout
 				cmd.Stderr = os.Stderr

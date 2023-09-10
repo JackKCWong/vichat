@@ -22,7 +22,7 @@ export OPENAI_API_KEY=<your LLM api key>
 export OPENAI_API_BASE=<your LLM api base>
 ```
 
-Chat directly on cli:
+Chat directly on cli and open the respone in Vim:
 
 ```bash
 vichat chat [options] tell me a joke about Go
@@ -30,6 +30,11 @@ vichat chat [options] tell me a joke about Go
 vichat chat -t 0.1 -m 100
 tell me a joke about Golang
 ^D
+# or output to terminal directly
+vichat chat -o tell me a joke about Vim
+
+# or just simply, note that it does not support the chat opts
+vichat tell me a joke about Vim
 ```
 
 Chat with history:
