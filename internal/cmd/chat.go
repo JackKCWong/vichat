@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/JackKCWong/vichat/internal/vichat"
 	markdown "github.com/MichaelMure/go-term-markdown"
@@ -27,6 +28,7 @@ func init() {
 	ChatCmd.Flags().IntP("max_tokens", "m", DefaultMaxTokens, "max token for response")
 	ChatCmd.Flags().Float32P("temperature", "t", DefaultTemperature, "temperature, higher means more randomness.")
 	ChatCmd.Flags().BoolP("term", "o", false, "print to terminal")
+	ChatCmd.Flags().BoolP("func", "f", false, "use functions")
 	// ChatCmd.Flags().StringP("role", "r", "assistant", "each role maps to a system prompt defined in ~/.vichat.yaml")
 }
 
@@ -67,7 +69,7 @@ var ChatCmd = &cobra.Command{
 			}
 		}
 
-		chatClient := vichat.New().WithTemperature(temperature).WithMaxTokens(maxTokens)
+		llm := vichat.New().WithTemperature(temperature).WithMaxTokens(maxTokens)
 		prompts := CreatePrompts(lines)
 		if len(prompts) == 0 {
 			slog.Error("invalid input")
@@ -83,8 +85,23 @@ var ChatCmd = &cobra.Command{
 			}}, prompts...)
 		}
 
+		if ok, _ := f.GetBool("func"); ok {
+			if err := llm.BindFunction(
+				getRelativeTime,
+				"getRelativeTime",
+				`Use this function to find out what time is it using a relative duration of seconds. 
+				Translate the time into a num of seconds before calling the function. 
+				e.g. 1 hour ago = getRelativeTime(3600)
+					 now = getRelativeTime(0)
+				`,
+			); err != nil {
+				slog.Error("failed to bind function", "err", err.Error())
+				return
+			}
+		}
+
 		messages := chat.New(prompts...)
-		resp, err := chatClient.Chat(context.TODO(), messages)
+		resp, err := llm.Chat(context.TODO(), messages)
 		if err != nil {
 			slog.Error("failed", "err", err.Error())
 			return
@@ -229,4 +246,21 @@ func getMaxTokens(text string) int {
 	}
 
 	return DefaultMaxTokens
+}
+
+type TimeQuery struct {
+	SecondsAgo int `json:"secondsAgo"`
+}
+
+type TimeResp struct {
+	Time  string `json:"time"`
+	Query string `json:"query"`
+}
+
+func getRelativeTime(query TimeQuery) TimeResp {
+	return TimeResp{Time: time.Now().
+		Add(time.Duration(-query.SecondsAgo) * time.Second).
+		Format("2006-01-02 15:04:05"),
+		Query: (time.Duration(query.SecondsAgo) * time.Second).String() + " ago",
+	}
 }
