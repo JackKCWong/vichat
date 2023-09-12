@@ -10,7 +10,10 @@ function! SendToChat()
     if l != '' 
         let output = [""] + output
     endif
+
+    norm! G
     call append(line('$'), output + ["", "", "USER: "])
+    norm! 3j
 
 endfunction
 
@@ -33,6 +36,7 @@ nnoremap <buffer> <c-t> :Try<cr>
 nnoremap <buffer> <leader><cr> :Chat<cr>
 nnoremap <buffer> <leader>s :Chat<cr>
 nnoremap <buffer> <leader>t :Try<cr>
+nnoremap <buffer> <leader>a GA
 
 inoremap <buffer> <c-s> <esc>:Chat<cr>
 inoremap <buffer> <c-t> <esc>:Try<cr>
