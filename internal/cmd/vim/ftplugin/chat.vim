@@ -33,6 +33,8 @@ command! -buffer Try call TryToChat()
 
 nnoremap <buffer> <c-s> :Chat<cr>
 nnoremap <buffer> <c-t> :Try<cr>
+nnoremap <buffer> <c-a> GA
+
 nnoremap <buffer> <leader><cr> :Chat<cr>
 nnoremap <buffer> <leader>s :Chat<cr>
 nnoremap <buffer> <leader>t :Try<cr>
