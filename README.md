@@ -68,6 +68,8 @@ When in Vim (normal mode or insert mode):
 
 * `ctrl+t` to send the full chat, but the result will be put to a new buffer, useful when you want to ask many simple questions that doesn't require context. Saves token usages.
 
+* `ctrl+a` to jump to the end and start asking a new question.
+
 
 Vim tips:
 
