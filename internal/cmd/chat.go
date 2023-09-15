@@ -29,7 +29,7 @@ func init() {
 	ChatCmd.Flags().Float32P("temperature", "t", DefaultTemperature, "temperature, higher means more randomness.")
 	ChatCmd.Flags().BoolP("term", "o", false, "print to terminal")
 	ChatCmd.Flags().BoolP("func", "f", false, "use functions")
-	// ChatCmd.Flags().StringP("role", "r", "assistant", "each role maps to a system prompt defined in ~/.vichat.yaml")
+	ChatCmd.Flags().StringP("system-prompt", "s", "system.prompt", "point to a system prompt file")
 }
 
 var ChatCmd = &cobra.Command{
@@ -79,9 +79,15 @@ var ChatCmd = &cobra.Command{
 		var isFirst = false
 		if len(prompts) == 1 && prompts[0].Type != chat.MessageTypeSystem {
 			isFirst = true
+			prf, _ := f.GetString("system-prompt")
+			promptStr, err := os.ReadFile(prf)
+			if err != nil {
+				promptStr = []byte(DefaultSystemPrompt)
+			}
+
 			prompts = append([]chat.PromptMessage{{
 				Type:   chat.MessageTypeSystem,
-				Prompt: prompt.New(DefaultSystemPrompt),
+				Prompt: prompt.New(string(promptStr)),
 			}}, prompts...)
 		}
 
