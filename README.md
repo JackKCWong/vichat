@@ -1,6 +1,8 @@
 # vichat
 
-A simple LLM chat cli that uses openai compatible apis.
+A simple LLM chat cli (with Vim).
+
+![demo](https://github.com/JackKCWong/vichat/blob/main/vichat.gif?raw=true)
 
 ## Why
 
@@ -76,6 +78,7 @@ Vim tips:
 * put this line in your `~/.vimrc` to enable code block highlight in markdown
 
 ```vim
+syntax on
 let g:markdown_fenced_languages = ['html', 'js=javascript', 'rust', 'go', 'java']
 ```
 
