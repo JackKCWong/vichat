@@ -5,7 +5,7 @@ endif
 setlocal filetype=markdown
 
 syntax match aiLine /AI: .*/
-hi def link aiLine DiffAdd
+hi def link aiLine ModeMsg
 
 syntax match userLine /USER: .*/
 hi def link userLine Question
