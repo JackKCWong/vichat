@@ -117,11 +117,7 @@ var ChatCmd = &cobra.Command{
 
 		if isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stderr.Fd()) {
 			if term {
-				// only print response to terminal
-				if strings.Contains(resp, "```") {
-					fmt.Println()
-					resp = string(markdown.Render(resp, 90, 4))
-				}
+				resp = string(markdown.Render(resp, 90, 4))
 
 				fmt.Println()
 				fmt.Println(resp)
