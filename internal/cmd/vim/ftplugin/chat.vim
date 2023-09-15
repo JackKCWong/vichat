@@ -1,6 +1,5 @@
 
 function! SendToChat()
-    call popup_notification("Sending to LLM", {'line': 2, 'col': 10, 'time': 1000})
     " Redirect the content of the current buffer to the external command's stdin
     let output = systemlist("vichat chat", getline(1, '$'))
     let output[0] = "AI: " . output[0]
@@ -18,7 +17,6 @@ function! SendToChat()
 endfunction
 
 function! TryToChat()
-    call popup_notification("Sending to LLM", {'line': 2, 'col': 10, 'time': 1000})
     " Redirect the content of the current buffer to the external command's stdin
     let output = systemlist("vichat chat", getline(1, '$'))
 
