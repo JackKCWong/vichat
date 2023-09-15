@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
+	"log"
 	"os"
 	"os/exec"
 	"regexp"
@@ -41,7 +41,7 @@ var ChatCmd = &cobra.Command{
 		if len(args) == 0 {
 			stdin, err := io.ReadAll(os.Stdin)
 			if err != nil {
-				slog.Error("failed to read input", "err", err)
+				log.Fatalf("failed to read input: %q", err)
 				return
 			}
 
@@ -72,7 +72,7 @@ var ChatCmd = &cobra.Command{
 		llm := vichat.New().WithTemperature(temperature).WithMaxTokens(maxTokens)
 		prompts := CreatePrompts(lines)
 		if len(prompts) == 0 {
-			slog.Error("invalid input")
+			log.Fatalf("invalid input")
 			return
 		}
 
@@ -101,7 +101,7 @@ var ChatCmd = &cobra.Command{
 					 now = getRelativeTime(0)
 				`,
 			); err != nil {
-				slog.Error("failed to bind function", "err", err.Error())
+				log.Fatalf("failed to bind function: %q", err.Error())
 				return
 			}
 		}
@@ -109,7 +109,7 @@ var ChatCmd = &cobra.Command{
 		messages := chat.New(prompts...)
 		resp, err := llm.Chat(context.TODO(), messages)
 		if err != nil {
-			slog.Error("failed", "err", err.Error())
+			log.Fatalf("failed to send send: %q", err.Error())
 			return
 		}
 
@@ -126,8 +126,7 @@ var ChatCmd = &cobra.Command{
 				// open the full chat in vim
 				tmpf, err := os.CreateTemp(os.TempDir(), "*.chat")
 				if err != nil {
-					slog.Error("failed to create temp file", "err", err.Error())
-					fmt.Println(resp)
+					log.Fatalf("failed to create temp file: %q", err)
 				}
 
 				fmt.Fprintf(tmpf, "# temperature=%.1f, max_tokens=%d\n\n", temperature, maxTokens)

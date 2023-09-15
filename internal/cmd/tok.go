@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"log/slog"
+	"log"
 	"os"
 
 	"github.com/JackKCWong/vichat/internal/vichat"
@@ -18,17 +18,17 @@ var TokCmd = &cobra.Command{
 		f := cmd.Flags()
 		model, err := f.GetString("model")
 		if err != nil {
-			slog.Error("failed", "err", err)
+			log.Fatalf("failed to read model: %q", err)
 		}
 
 		text, err := io.ReadAll(os.Stdin)
 		if err != nil {
-			slog.Error("failed", "err", err)
+			log.Fatalf("failed to read input: %q", err)
 		}
 
 		toks, err := vichat.Tokenize(string(text), model)
 		if err != nil {
-			slog.Error("failed", "err", err)
+			log.Fatalf("failed to tokenize: %q", err)
 			return
 		}
 

@@ -1,9 +1,6 @@
 package main
 
 import (
-	"log/slog"
-	"os"
-
 	"github.com/JackKCWong/vichat/internal/cmd"
 	"github.com/spf13/cobra"
 )
@@ -25,9 +22,6 @@ func init() {
 }
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	slog.SetDefault(logger)
-
 	if err := rootCmd.Execute(); err != nil {
 		println(err.Error())
 	}
