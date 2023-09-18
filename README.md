@@ -72,6 +72,8 @@ When in Vim:
 
 * `ctrl+a` (n mode) to jump to the end and start asking a new question.
 
+* `ctrl+t` (n mode) to estimate the number of tokens using titoken gpt-like encoding.
+
 
 Vim tips:
 
