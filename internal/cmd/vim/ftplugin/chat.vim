@@ -26,11 +26,20 @@ function! TryToChat()
     call append(line('$'), output)
 endfunction
 
+function! CountTokens()
+    " Redirect the content of the current buffer to the external command's stdin
+    let output = systemlist("vichat tok", getline(1, '$'))
+
+    echo "estimate: " . output[0] . " tokens"
+endfunction
+
 command! -buffer Chat call SendToChat()
 command! -buffer Try call TryToChat()
+command! -buffer Count call CountTokens()
 
 nnoremap <buffer> <c-s> :Chat<cr>
 nnoremap <buffer> <c-t> :Try<cr>
+nnoremap <buffer> <c-k> :Count<cr>
 nnoremap <buffer> <c-a> GA
 
 nnoremap <buffer> <leader><cr> :Chat<cr>
