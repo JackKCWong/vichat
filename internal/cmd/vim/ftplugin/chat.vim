@@ -41,7 +41,6 @@ nnoremap <buffer> <c-s> :Chat<cr>
 nnoremap <buffer> <c-t> :Try<cr>
 nnoremap <buffer> <c-k> :Count<cr>
 nnoremap <buffer> <c-a> GA
-nnoremap <buffer> y "+y 
 
 nnoremap <buffer> <leader><cr> :Chat<cr>
 nnoremap <buffer> <leader>s :Chat<cr>
@@ -50,3 +49,11 @@ nnoremap <buffer> <leader>a GA
 
 inoremap <buffer> <c-s> <esc>:Chat<cr>
 inoremap <buffer> <c-t> <esc>:Try<cr>
+
+if has('mac') || has('macunix')
+    vnoremap <buffer> y "+y 
+    nnoremap <buffer> yy "+yy 
+else
+    vnoremap <buffer> y "*y 
+    nnoremap <buffer> yy "*yy 
+endif
