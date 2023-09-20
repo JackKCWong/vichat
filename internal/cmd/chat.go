@@ -37,6 +37,18 @@ var ChatCmd = &cobra.Command{
 	Short: "read a chat from stdin and send to LLM chat",
 	Run: func(cmd *cobra.Command, args []string) {
 
+		if hasDifference(vimPlugins, "vim/ftdetect", os.ExpandEnv("$HOME/.vim/ftdetect")) {
+			log.Printf("WARNING: your vichat vim plugin appears to be out of sync. run `vichat i` to install it again.")
+		}
+
+		if hasDifference(vimPlugins, "vim/ftplugin", os.ExpandEnv("$HOME/.vim/ftplugin")) {
+			log.Printf("WARNING: your vichat vim plugin appears to be out of sync. run `vichat i` to install it again.")
+		}
+
+		if hasDifference(vimPlugins, "vim/syntax", os.ExpandEnv("$HOME/.vim/syntax")) {
+			log.Printf("WARNING: your vichat vim plugin appears to be out of sync. run `vichat i` to install it again.")
+		}
+
 		input := ""
 		if len(args) == 0 {
 			stdin, err := io.ReadAll(os.Stdin)

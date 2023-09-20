@@ -59,3 +59,44 @@ func installVim() {
 	installFiles(vimPlugins, "vim/ftplugin", os.ExpandEnv("$HOME/.vim/ftplugin"))
 	installFiles(vimPlugins, "vim/syntax", os.ExpandEnv("$HOME/.vim/syntax"))
 }
+
+func hasDifference(fs embed.FS, path, dest string) bool {
+	if _, err := os.Stat(dest); errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+
+	dirs, err := fs.ReadDir(path)
+	if err != nil {
+		log.Fatalf("failed to list vim plugins: %q", err)
+	}
+
+	for _, f := range dirs {
+		destFs, err := os.Open(filepath.Join(dest, f.Name()))
+		if err != nil {
+			return true
+		}
+		defer destFs.Close()
+
+		srcFs, err := fs.Open(filepath.Join(path, f.Name()))
+		if err != nil {
+			log.Fatalf("failed to read vim plugins: %q", err)
+		}
+		defer srcFs.Close()
+
+		destFi, err := destFs.Stat()
+		if err != nil {
+			log.Printf("failed to read vim plugins: %q", err)
+		}
+
+		srcFi, err := srcFs.Stat()
+		if err != nil {
+			log.Printf("failed to read vim plugins: %q", err)
+		}
+
+		if destFi.Size() != srcFi.Size() {
+			return true
+		}
+	}
+
+	return false
+}
