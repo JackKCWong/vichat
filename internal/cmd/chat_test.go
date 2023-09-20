@@ -18,7 +18,7 @@ the goose a comedian
 	prompts := CreatePrompts(strings.Split(script, "\n"))
 
 	if len(prompts) != 3 {
-		t.Errorf("Expected 2 prompts, got %d", len(prompts))
+		t.Errorf("Expected 3 prompts, got %d", len(prompts))
 	}
 
 	if prompts[0].Type != "system" {
@@ -40,6 +40,15 @@ the goose a comedian
 		t.Errorf("Expected prompt string, got %s", prompts[2].Prompt.String())
 	}
 
+	script = `tell me a joke about vim`
+	prompts = CreatePrompts(strings.Split(script, "\n"))
+	if len(prompts) != 1 {
+		t.Errorf("Expected 1 prompts, got %d", len(prompts))
+	}
+
+	if prompts[0].Type != "user" {
+		t.Errorf("Expected prompt type to be system, got %s", prompts[0].Type)
+	}
 }
 
 func TestGetLLMParams(t *testing.T) {

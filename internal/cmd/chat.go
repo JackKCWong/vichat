@@ -165,7 +165,7 @@ var ChatCmd = &cobra.Command{
 
 func CreatePrompts(lines []string) []chat.PromptMessage {
 	prompts := make([]chat.PromptMessage, 0)
-	var messageType chat.MessageType = chat.MessageTypeUser
+	var messageType chat.MessageType = ""
 	var message strings.Builder
 	for _, line := range lines {
 		if line == "" {
@@ -209,6 +209,10 @@ func CreatePrompts(lines []string) []chat.PromptMessage {
 			message.WriteString(line)
 			message.WriteString("\n")
 		}
+	}
+
+	if messageType == "" {
+		messageType = chat.MessageTypeUser
 	}
 
 	prompts = append(prompts, chat.PromptMessage{
