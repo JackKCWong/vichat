@@ -26,21 +26,44 @@ function! TryToChat()
     call append(line('$'), output)
 endfunction
 
-function! CountTokens()
+function! CountTokens(ran)
     " Redirect the content of the current buffer to the external command's stdin
-    let output = systemlist("vichat tok", getline(1, '$'))
+    if a:ran == 0
+        let selection = getline(1, "$")
+    else
+        let selection = getline("'<", "'>")
+    end 
+    let output = systemlist("vichat tok", selection)
 
     echo "estimate: " . output[0] . " tokens"
 endfunction
 
+function! SplitText(ran)
+    " Redirect the content of the current buffer to the external command's stdin
+    if a:ran == 0
+        let selection = getline(1, "$")
+    else
+        let selection = getline("'<", "'>")
+    end 
+    let output = systemlist("vichat split", selection)
+
+    exe "vnew"
+    setlocal buftype=nofile nobuflisted
+
+    call append(line('$'), output)
+endfunction
+
 command! -buffer Chat call SendToChat()
 command! -buffer Try call TryToChat()
-command! -buffer Count call CountTokens()
+command! -buffer -range Count call CountTokens(<range>)
+command! -buffer -range Split call SplitText(<range>)
 
 nnoremap <buffer> <c-s> :Chat<cr>
 nnoremap <buffer> <c-t> :Try<cr>
 nnoremap <buffer> <c-k> :Count<cr>
+vnoremap <buffer> <c-k> :Count<cr>
 nnoremap <buffer> <c-a> GA
+nnoremap <buffer> q :q<cr>
 
 nnoremap <buffer> <leader><cr> :Chat<cr>
 nnoremap <buffer> <leader>s :Chat<cr>

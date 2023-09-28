@@ -74,6 +74,8 @@ When in Vim:
 
 * `ctrl+t` (n mode) to estimate the number of tokens using titoken gpt-like encoding.
 
+* `q` (n mode) close current chat.
+
 
 Vim tips:
 
