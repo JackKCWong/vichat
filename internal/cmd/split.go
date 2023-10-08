@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"os"
 
@@ -14,14 +13,14 @@ var SplitCmd = &cobra.Command{
 	Use:   "split",
 	Short: "Split a text into multiple chunks",
 	Run: func(cmd *cobra.Command, args []string) {
-		text, err := io.ReadAll(os.Stdin)
+		text, err := readAll(os.Stdin)
 		if err != nil {
 			log.Fatalf("failed to read input: %q", err)
 		}
 		chunkSize, _ := cmd.Flags().GetInt("chunk-size")
 		overlap, _ := cmd.Flags().GetInt("overlap")
 
-		chunks := vichat.RecursiveTextSplit(string(text), chunkSize, overlap)
+		chunks := vichat.RecursiveTextSplit(text, chunkSize, overlap)
 		for i := range chunks {
 			fmt.Println("--------------------------------------------")
 			fmt.Println(chunks[i])

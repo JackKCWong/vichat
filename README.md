@@ -74,6 +74,12 @@ When in Vim:
 
 * `ctrl+t` (n mode) to estimate the number of tokens using titoken gpt-like encoding.
 
+* `ctrl+k` (n or v mode) to count the number of tokens.
+
+* `ctrl+c` (n or v mode) to chunk the text using RecursiveTextSplitter.
+
+* `ctrl+n` (n mode) to start a new chat with the same system prompt.
+
 * `q` (n mode) close current chat.
 
 

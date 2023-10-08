@@ -38,7 +38,7 @@ function! CountTokens(ran)
     echo "estimate: " . output[0] . " tokens"
 endfunction
 
-function! SplitText(ran)
+function! ChunkText(ran)
     " Redirect the content of the current buffer to the external command's stdin
     if a:ran == 0
         let selection = getline(1, "$")
@@ -72,11 +72,12 @@ command! -buffer Chat call SendToChat()
 command! -buffer NewChat call StartNewChat()
 command! -buffer Try call TryToChat()
 command! -buffer -range Count call CountTokens(<range>)
-command! -buffer -range Split call SplitText(<range>)
+command! -buffer -range Chunk call ChunkText(<range>)
 
 nnoremap <buffer> <c-s> :Chat<cr>
 nnoremap <buffer> <c-t> :Try<cr>
 nnoremap <buffer> <c-k> :Count<cr>
+nnoremap <buffer> <c-c> :Chunk<cr>
 nnoremap <buffer> <c-n> :NewChat<cr>:set ft=chat<cr>A
 vnoremap <buffer> <c-k> :Count<cr>
 nnoremap <buffer> <c-a> GA

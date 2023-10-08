@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"os"
 
@@ -21,12 +20,12 @@ var TokCmd = &cobra.Command{
 			log.Fatalf("failed to read model: %q", err)
 		}
 
-		text, err := io.ReadAll(os.Stdin)
+		text, err := readAll(os.Stdin)
 		if err != nil {
 			log.Fatalf("failed to read input: %q", err)
 		}
 
-		toks, err := vichat.Tokenize(string(text), model)
+		toks, err := vichat.Tokenize(text, model)
 		if err != nil {
 			log.Fatalf("failed to tokenize: %q", err)
 			return
