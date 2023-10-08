@@ -53,7 +53,23 @@ function! SplitText(ran)
     call append(line('$'), output)
 endfunction
 
+function! StartNewChat()
+    let pos = getcurpos()
+    norm! gg
+    let end_of_prompt = search('^USER:', 'n')
+    let output = getline(1, end_of_prompt - 1)
+
+    call setpos('.', pos)
+
+    exe "vnew"
+    setlocal buftype=nofile nobuflisted
+
+    call append(0, output)
+    call setline(line('$'), 'USER: ')
+endfunction
+
 command! -buffer Chat call SendToChat()
+command! -buffer NewChat call StartNewChat()
 command! -buffer Try call TryToChat()
 command! -buffer -range Count call CountTokens(<range>)
 command! -buffer -range Split call SplitText(<range>)
@@ -61,6 +77,7 @@ command! -buffer -range Split call SplitText(<range>)
 nnoremap <buffer> <c-s> :Chat<cr>
 nnoremap <buffer> <c-t> :Try<cr>
 nnoremap <buffer> <c-k> :Count<cr>
+nnoremap <buffer> <c-n> :NewChat<cr>:set ft=chat<cr>A
 vnoremap <buffer> <c-k> :Count<cr>
 nnoremap <buffer> <c-a> GA
 nnoremap <buffer> q :q<cr>
