@@ -49,7 +49,20 @@ var ChatCmd = &cobra.Command{
 			log.Printf("WARNING: your vichat vim plugin appears to be out of sync. run `vichat i` to install it again.")
 		}
 
-		input := ""
+		var f = cmd.Flags()
+		var temperature float32 = DefaultTemperature
+		var maxTokens int = DefaultMaxTokens
+
+		if m, err := f.GetInt("max_tokens"); err == nil {
+			maxTokens = m
+		}
+
+		if t, err := f.GetFloat32("temperature"); err == nil {
+			temperature = t
+		}
+
+		var input string
+		var lines []string
 		if len(args) == 0 {
 			stdin, err := io.ReadAll(os.Stdin)
 			if err != nil {
@@ -58,27 +71,15 @@ var ChatCmd = &cobra.Command{
 			}
 
 			input = string(stdin)
+			lines = strings.Split(string(input), "\n")
+			if strings.HasPrefix(lines[0], "#") {
+				temperature = getTemperature(lines[0])
+				maxTokens = getMaxTokens(lines[0])
+				lines = lines[0:]
+			}
 		} else {
 			input = strings.Join(args, " ")
-		}
-
-		var f = cmd.Flags()
-		var temperature float32 = DefaultTemperature
-		var maxTokens int = DefaultMaxTokens
-
-		lines := strings.Split(string(input), "\n")
-		if strings.HasPrefix(lines[0], "#") {
-			temperature = getTemperature(lines[0])
-			maxTokens = getMaxTokens(lines[0])
-			lines = lines[0:]
-		} else {
-			if m, err := f.GetInt("max_tokens"); err == nil {
-				maxTokens = m
-			}
-
-			if t, err := f.GetFloat32("temperature"); err == nil {
-				temperature = t
-			}
+			lines = []string{input}
 		}
 
 		llm := vichat.New().WithTemperature(temperature).WithMaxTokens(maxTokens)
