@@ -63,7 +63,7 @@ var ChatCmd = &cobra.Command{
 
 		var input string
 		var lines []string
-		if len(args) == 0 {
+		if !isatty.IsTerminal(os.Stdin.Fd()) {
 			stdin, err := io.ReadAll(os.Stdin)
 			if err != nil {
 				log.Fatalf("failed to read input: %q", err)
@@ -119,11 +119,15 @@ var ChatCmd = &cobra.Command{
 			}
 		}
 
+		var resp string
+		var err error
 		messages := chat.New(prompts...)
-		resp, err := llm.Chat(context.TODO(), messages)
-		if err != nil {
-			log.Fatalf("failed to send send: %q", err.Error())
-			return
+		if !isFirst {
+			resp, err = llm.Chat(context.TODO(), messages)
+			if err != nil {
+				log.Fatalf("failed to send send: %q", err.Error())
+				return
+			}
 		}
 
 		term, _ := f.GetBool("term")
@@ -147,24 +151,20 @@ var ChatCmd = &cobra.Command{
 					prefix := ""
 					switch p.Type {
 					case chat.MessageTypeSystem:
-						prefix = "SYSTEM: "
+						prefix = "SYSTEM"
 					case chat.MessageTypeUser:
-						prefix = "USER: "
-					case chat.MessageTypeAssistant:
-						prefix = "AI: "
+						prefix = "USER"
 					}
 
-					fmt.Fprintf(tmpf, "%s%s\n\n", prefix, strings.Trim(p.Prompt.String(), "\r\n"))
+					fmt.Fprintf(tmpf, "%s: %s\n\n", prefix, strings.Trim(p.Prompt.String(), "\r\n"))
 				}
 
-				fmt.Fprintf(tmpf, "AI: %s\n\nUSER: ", resp)
 				tmpf.Close()
 
 				// invoke vim using cmd and open tmpf
-				cmd := exec.Command("vim", "-c", "norm! 4j", tmpf.Name())
+				cmd := exec.Command("vim", "-c", "redraw|Chat", tmpf.Name())
 				cmd.Stdin = os.Stdin
 				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
 
 				cmd.Run()
 			}

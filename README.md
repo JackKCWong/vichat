@@ -82,6 +82,8 @@ When in Vim:
 
 * `q` (n mode) close current chat.
 
+* `ctrl+q` (n mode) force close current chat.
+
 
 Vim tips:
 
