@@ -63,6 +63,7 @@ var ChatCmd = &cobra.Command{
 
 		var input string
 		var lines []string
+		var isSimpleChat bool = false
 		if !isatty.IsTerminal(os.Stdin.Fd()) {
 			stdin, err := io.ReadAll(os.Stdin)
 			if err != nil {
@@ -80,6 +81,7 @@ var ChatCmd = &cobra.Command{
 		} else {
 			input = strings.Join(args, " ")
 			lines = []string{input}
+			isSimpleChat = true
 		}
 
 		llm := vichat.New().WithTemperature(temperature).WithMaxTokens(maxTokens)
@@ -89,9 +91,7 @@ var ChatCmd = &cobra.Command{
 			return
 		}
 
-		var isFirst = false
-		if len(prompts) == 1 && prompts[0].Type != chat.MessageTypeSystem {
-			isFirst = true
+		if isSimpleChat {
 			prf, _ := f.GetString("system-prompt")
 			promptStr, err := os.ReadFile(prf)
 			if err != nil {
@@ -122,7 +122,7 @@ var ChatCmd = &cobra.Command{
 		var resp string
 		var err error
 		messages := chat.New(prompts...)
-		if !isFirst {
+		if !isSimpleChat {
 			resp, err = llm.Chat(context.TODO(), messages)
 			if err != nil {
 				log.Fatalf("failed to send send: %q", err.Error())
@@ -139,7 +139,7 @@ var ChatCmd = &cobra.Command{
 				fmt.Println()
 				fmt.Println(resp)
 				fmt.Println()
-			} else if isFirst {
+			} else if isSimpleChat {
 				// open the full chat in vim
 				tmpf, err := os.CreateTemp(os.TempDir(), "*.chat")
 				if err != nil {
