@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -23,12 +24,12 @@ var InstallCmd = &cobra.Command{
 	},
 }
 
-func installFiles(fs embed.FS, path, dest string) {
+func installFiles(efs embed.FS, efsPath, dest string) {
 	if _, err := os.Stat(dest); errors.Is(err, os.ErrNotExist) {
 		os.MkdirAll(dest, 0750)
 	}
 
-	dirs, err := fs.ReadDir(path)
+	dirs, err := efs.ReadDir(efsPath)
 	if err != nil {
 		log.Fatalf("failed to list vim plugins: %q", err)
 	}
@@ -40,7 +41,7 @@ func installFiles(fs embed.FS, path, dest string) {
 		}
 		defer destFs.Close()
 
-		srcFs, err := fs.Open(filepath.Join(path, f.Name()))
+		srcFs, err := efs.Open(path.Join(efsPath, f.Name())) // embed.FS use / regardless OS
 		if err != nil {
 			log.Fatalf("failed to read vim plugins: %q", err)
 		}
@@ -60,12 +61,12 @@ func installVim() {
 	installFiles(vimPlugins, "vim/syntax", os.ExpandEnv("$HOME/.vim/syntax"))
 }
 
-func hasDifference(fs embed.FS, path, dest string) bool {
+func hasDifference(efs embed.FS, fsPath, dest string) bool {
 	if _, err := os.Stat(dest); errors.Is(err, os.ErrNotExist) {
 		return false
 	}
 
-	dirs, err := fs.ReadDir(path)
+	dirs, err := efs.ReadDir(fsPath)
 	if err != nil {
 		log.Fatalf("failed to list vim plugins: %q", err)
 	}
@@ -77,7 +78,7 @@ func hasDifference(fs embed.FS, path, dest string) bool {
 		}
 		defer destFs.Close()
 
-		srcFs, err := fs.Open(filepath.Join(path, f.Name()))
+		srcFs, err := efs.Open(path.Join(fsPath, f.Name()))
 		if err != nil {
 			log.Fatalf("failed to read vim plugins: %q", err)
 		}
