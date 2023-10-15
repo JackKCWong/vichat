@@ -5,6 +5,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+//go:generate git submodule update --recursive --remote 
+//go:generate cp awesome-chatgpt-prompts/prompts.csv internal/cmd/prompts.csv
+
 var rootCmd = &cobra.Command{
 	Use:   "vichat",
 	Short: "vichat is a LLM chat cli",
