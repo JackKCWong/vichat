@@ -1,0 +1,3 @@
+[submodule "internal/cmd/awesome-chatgpt-prompts"]
+	path = internal/cmd/awesome-chatgpt-prompts
+	url = git@github.com:f/awesome-chatgpt-prompts.git

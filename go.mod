@@ -25,6 +25,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/invopop/jsonschema v0.7.0 // indirect
 	github.com/kyokomi/emoji/v2 v2.2.8 // indirect
+	github.com/lithammer/fuzzysearch v1.1.8 // indirect
 	github.com/lucasb-eyer/go-colorful v1.0.3 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
@@ -33,6 +34,7 @@ require (
 	github.com/rivo/uniseg v0.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/image v0.0.0-20191206065243-da761ea9ff43 // indirect
-	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7 // indirect
+	golang.org/x/net v0.6.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 )

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -16,13 +18,20 @@ import (
 	markdown "github.com/MichaelMure/go-term-markdown"
 	"github.com/henomis/lingoose/chat"
 	"github.com/henomis/lingoose/prompt"
+	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
+
+	_ "embed"
+	"encoding/csv"
 )
 
 const DefaultTemperature = 0.7
 const DefaultMaxTokens = 1000
 const DefaultSystemPrompt = "You are a helpful assistant."
+
+//go:embed awesome-chatgpt-prompts/prompts.csv
+var awesomePrompts []byte
 
 func init() {
 	ChatCmd.Flags().IntP("max_tokens", "m", DefaultMaxTokens, "max token for response")
@@ -92,10 +101,29 @@ var ChatCmd = &cobra.Command{
 		}
 
 		if isSimpleChat {
+			var promptStr []byte
+			var err error
 			prf, _ := f.GetString("system-prompt")
-			promptStr, err := os.ReadFile(prf)
-			if err != nil {
+			if prf == "system.prompt" {
 				promptStr = []byte(DefaultSystemPrompt)
+			} else {
+				promptStr, err = os.ReadFile(prf)
+				if err != nil {
+					prd := csv.NewReader(bytes.NewReader(awesomePrompts))
+					embedPrompts, err := prd.ReadAll()
+					if err == nil {
+						index := make([]string, len(embedPrompts))
+						for i := range embedPrompts {
+							index[i] = strings.ToLower(embedPrompts[i][0])
+						}
+
+						matches := fuzzy.RankFind(prf, index)
+						sort.Sort(matches)
+
+						hit := matches[0].OriginalIndex
+						promptStr = []byte(embedPrompts[hit][1])
+					}
+				}
 			}
 
 			prompts = append([]chat.PromptMessage{{
