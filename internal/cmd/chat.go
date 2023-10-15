@@ -30,7 +30,10 @@ const DefaultTemperature = 0.7
 const DefaultMaxTokens = 1000
 const DefaultSystemPrompt = "You are a helpful assistant."
 
-//go:embed awesome-chatgpt-prompts/prompts.csv
+//go:generate git submodule update --recursive --remote 
+//go:generate cp awesome-chatgpt-prompts/prompts.csv .
+
+//go:embed prompts.csv
 var awesomePrompts []byte
 
 func init() {
