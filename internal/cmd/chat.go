@@ -36,7 +36,7 @@ var awesomePrompts []byte
 func init() {
 	ChatCmd.Flags().IntP("max_tokens", "m", DefaultMaxTokens, "max token for response")
 	ChatCmd.Flags().Float32P("temperature", "t", DefaultTemperature, "temperature, higher means more randomness.")
-	ChatCmd.Flags().BoolP("term", "r", false, "render markdown to terminal")
+	ChatCmd.Flags().BoolP("render", "r", false, "render markdown to terminal")
 	ChatCmd.Flags().BoolP("func", "f", false, "use functions")
 	ChatCmd.Flags().StringP("system-prompt", "s", "system.prompt", "point to a system prompt file")
 }
@@ -164,7 +164,11 @@ var ChatCmd = &cobra.Command{
 				fmt.Println()
 			} else if isSimpleChat {
 				// open the full chat in vim
-				tmpf, err := os.CreateTemp(os.TempDir(), "*.chat")
+				dir, err := os.Getwd()
+				if err != nil {
+					dir = os.TempDir()
+				}
+				tmpf, err := os.CreateTemp(dir, "*.chat")
 				if err != nil {
 					log.Fatalf("failed to create temp file: %q", err)
 				}
