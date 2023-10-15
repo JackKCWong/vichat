@@ -52,6 +52,7 @@ endfunction
 
 function! OnOutputEnd(ch, status)
     norm! GA
+    exe "w"
 endfunction
 
 function! TryToChat()
