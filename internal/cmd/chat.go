@@ -27,7 +27,7 @@ const DefaultSystemPrompt = "You are a helpful assistant."
 func init() {
 	ChatCmd.Flags().IntP("max_tokens", "m", DefaultMaxTokens, "max token for response")
 	ChatCmd.Flags().Float32P("temperature", "t", DefaultTemperature, "temperature, higher means more randomness.")
-	ChatCmd.Flags().BoolP("term", "o", false, "print to terminal")
+	ChatCmd.Flags().BoolP("term", "r", false, "render markdown to terminal")
 	ChatCmd.Flags().BoolP("func", "f", false, "use functions")
 	ChatCmd.Flags().StringP("system-prompt", "s", "system.prompt", "point to a system prompt file")
 }
@@ -119,21 +119,16 @@ var ChatCmd = &cobra.Command{
 			}
 		}
 
-		var resp string
-		var err error
+		isTermOutput, _ := f.GetBool("term")
 		messages := chat.New(prompts...)
-		if !isSimpleChat {
-			resp, err = llm.Chat(context.TODO(), messages)
-			if err != nil {
-				log.Fatalf("failed to send send: %q", err.Error())
-				return
-			}
-		}
+		if isatty.IsTerminal(os.Stdout.Fd()) {
+			if isTermOutput {
+				resp, err := llm.Chat(context.TODO(), messages)
+				if err != nil {
+					log.Fatalf("failed to send chat: %q", err.Error())
+					return
+				}
 
-		term, _ := f.GetBool("term")
-
-		if isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stderr.Fd()) {
-			if term {
 				resp = string(markdown.Render(resp, 90, 4))
 
 				fmt.Println()
@@ -147,18 +142,7 @@ var ChatCmd = &cobra.Command{
 				}
 
 				fmt.Fprintf(tmpf, "# temperature=%.1f, max_tokens=%d\n\n", temperature, maxTokens)
-				for _, p := range prompts {
-					prefix := ""
-					switch p.Type {
-					case chat.MessageTypeSystem:
-						prefix = "SYSTEM"
-					case chat.MessageTypeUser:
-						prefix = "USER"
-					}
-
-					fmt.Fprintf(tmpf, "%s: %s\n\n", prefix, strings.Trim(p.Prompt.String(), "\r\n"))
-				}
-
+				printPrompts(tmpf, prompts)
 				tmpf.Close()
 
 				// invoke vim using cmd and open tmpf
@@ -169,9 +153,19 @@ var ChatCmd = &cobra.Command{
 				cmd.Run()
 			}
 		} else {
-			// probably in vim mode
-			// just output the response
-			fmt.Println(resp)
+			// in vim mode, stream the output
+			fmt.Printf("AI: ")
+
+			err := llm.ChatStream(context.TODO(), func(s string) {
+				fmt.Print(s)
+			}, messages)
+
+			if err != nil {
+				log.Fatalf("failed to stream chat: %q", err.Error())
+				return
+			}
+
+			fmt.Println("\n\nUSER: ")
 		}
 	},
 }
@@ -280,5 +274,21 @@ func getRelativeTime(query TimeQuery) TimeResp {
 		Add(time.Duration(-query.SecondsAgo) * time.Second).
 		Format("2006-01-02 15:04:05"),
 		Query: (time.Duration(query.SecondsAgo) * time.Second).String() + " ago",
+	}
+}
+
+func printPrompts(w io.Writer, prompts []chat.PromptMessage) {
+	for _, p := range prompts {
+		prefix := ""
+		switch p.Type {
+		case chat.MessageTypeSystem:
+			prefix = "SYSTEM"
+		case chat.MessageTypeUser:
+			prefix = "USER"
+		case chat.MessageTypeAssistant:
+			prefix = "AI"
+		}
+
+		fmt.Fprintf(w, "%s: %s\n\n", prefix, strings.Trim(p.Prompt.String(), "\r\n"))
 	}
 }

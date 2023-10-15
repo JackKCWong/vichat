@@ -21,42 +21,63 @@ endfunction
 
 
 function! SendToChat()
-    let pid = ShowPopupMiddle('thinking...')
-    redraw
-    " Redirect the content of the current buffer to the external command's stdin
-    let output = systemlist("vichat chat", getline(1, '$'))
-
-    let output[0] = "AI: " . output[0]
-
-    call popup_close(pid)
-
-    " Append the output of the command to the current buffer
-    let l = getline('$')
-    if l != '' 
-        let output = [""] + output
+    if getline('$') != ""
+        call append(line('$'), [""])
     endif
 
-    norm! G
+    " Redirect the content of the current buffer to the external command's stdin
+    let job = job_start(["vichat", "chat"], 
+                                \ {
+                                \    "in_io": "buffer",
+                                \    "in_buf": bufnr(),
+                                \    "out_io": "buffer",
+                                \    "out_buf": bufnr(),
+                                \    "callback": "OnOutputToken",
+                                \    "exit_cb": "OnOutputEnd",
+                                \ })
+    let s = job_status(job)
 
-    call append(line('$'), output + ["", "", "USER: "])
+    if s == "fail"
+        call popup_notification("failed to exec vichat")
+        return
+    endif
 
-    norm! 3j
+    echow "thinking about " . bufname()
 
 endfunction
 
+function! OnOutputToken(ch, msg)
+    norm! G
+endfunction
+
+function! OnOutputEnd(ch, status)
+    norm! GA
+endfunction
+
 function! TryToChat()
-    let pid = ShowPopupMiddle('thinking...')
-    redraw
-    " Redirect the content of the current buffer to the external command's stdin
-    " Redirect the content of the current buffer to the external command's stdin
-    let output = systemlist("vichat chat", getline(1, '$'))
+    let inbuf = bufnr()
 
-    call popup_close(pid)
-
+    " Redirect the content of the current buffer to the external command's stdin
     exe "vnew"
-    setlocal buftype=nofile nobuflisted syntax=markdown
+    setlocal buftype=nofile nobuflisted syntax=markdown 
 
-    call append(line('$'), output)
+    let job = job_start(["vichat", "chat"], 
+                                \ {
+                                \    "in_io": "buffer",
+                                \    "in_buf": inbuf,
+                                \    "out_io": "buffer",
+                                \    "out_buf": bufnr(),
+                                \    "callback": "OnOutputToken",
+                                \    "exit_cb": "OnOutputEnd",
+                                \ })
+    let s = job_status(job)
+
+    if s == "fail"
+        call popup_notification("failed to exec vichat")
+        return
+    endif
+
+    echow "thinking about " . bufname()
 endfunction
 
 function! CountTokens(ran)
@@ -68,7 +89,7 @@ function! CountTokens(ran)
     end 
     let output = systemlist("vichat tok", selection)
 
-    echo "estimate: " . output[0] . " tokens"
+    echow "estimate: " . output[0] . " tokens in " . bufname()
 endfunction
 
 function! ChunkText(ran)
@@ -95,7 +116,6 @@ function! StartNewChat()
     call setpos('.', pos)
 
     exe "vnew"
-    setlocal buftype=nofile nobuflisted
 
     call append(0, output)
     call setline(line('$'), 'USER: ')
@@ -108,7 +128,7 @@ command! -buffer -range Count call CountTokens(<range>)
 command! -buffer -range Chunk call ChunkText(<range>)
 
 nnoremap <buffer> <c-s> :Chat<cr>
-nnoremap <buffer> <c-t> :Try<cr>
+nnoremap <buffer> <c-t> :Try<cr>:set ft=chat<cr>
 nnoremap <buffer> <c-k> :Count<cr>
 nnoremap <buffer> <c-c> :Chunk<cr>
 nnoremap <buffer> <c-n> :NewChat<cr>:set ft=chat<cr>A
