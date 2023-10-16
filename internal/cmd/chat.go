@@ -178,7 +178,13 @@ var ChatCmd = &cobra.Command{
 				tmpf.Close()
 
 				// invoke vim using cmd and open tmpf
-				cmd := exec.Command("vim", "-c", "redraw|Chat", tmpf.Name())
+				var cmd *exec.Cmd
+				if input == "" {
+					cmd = exec.Command("vim", "-c", "norm! GkA", tmpf.Name())
+				} else {
+					cmd = exec.Command("vim", "-c", "redraw|Chat", tmpf.Name())
+				}
+
 				cmd.Stdin = os.Stdin
 				cmd.Stdout = os.Stdout
 
