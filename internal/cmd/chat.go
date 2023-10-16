@@ -38,7 +38,7 @@ func init() {
 	ChatCmd.Flags().Float32P("temperature", "t", DefaultTemperature, "temperature, higher means more randomness.")
 	ChatCmd.Flags().BoolP("render", "r", false, "render markdown to terminal")
 	ChatCmd.Flags().BoolP("func", "f", false, "use functions")
-	ChatCmd.Flags().StringP("system-prompt", "s", "system.prompt", "point to a system prompt file")
+	ChatCmd.Flags().StringP("system-prompt", "s", "default", "point to a system prompt file")
 	ChatCmd.Flags().StringP("outdir", "o", ".", "dir to keep chat history")
 }
 
@@ -59,15 +59,15 @@ var ChatCmd = &cobra.Command{
 			log.Printf("WARNING: your vichat vim plugin appears to be out of sync. run `vichat i` to install it again.")
 		}
 
-		var f = cmd.Flags()
+		var opts = cmd.Flags()
 		var temperature float32 = DefaultTemperature
 		var maxTokens int = DefaultMaxTokens
 
-		if m, err := f.GetInt("max_tokens"); err == nil {
+		if m, err := opts.GetInt("max_tokens"); err == nil {
 			maxTokens = m
 		}
 
-		if t, err := f.GetFloat32("temperature"); err == nil {
+		if t, err := opts.GetFloat32("temperature"); err == nil {
 			temperature = t
 		}
 
@@ -104,11 +104,11 @@ var ChatCmd = &cobra.Command{
 		if isSimpleChat {
 			var promptStr []byte
 			var err error
-			prf, _ := f.GetString("system-prompt")
-			if prf == "system.prompt" {
+			optPormpt, _ := opts.GetString("system-prompt")
+			if optPormpt == "default" {
 				promptStr = []byte(DefaultSystemPrompt)
 			} else {
-				promptStr, err = os.ReadFile(prf)
+				promptStr, err = os.ReadFile(optPormpt)
 				if err != nil {
 					prd := csv.NewReader(bytes.NewReader(awesomePrompts))
 					embedPrompts, err := prd.ReadAll()
@@ -118,7 +118,7 @@ var ChatCmd = &cobra.Command{
 							index[i] = strings.ToLower(embedPrompts[i][0])
 						}
 
-						matches := fuzzy.RankFind(prf, index)
+						matches := fuzzy.RankFind(optPormpt, index)
 						sort.Sort(matches)
 
 						hit := matches[0].OriginalIndex
@@ -133,7 +133,7 @@ var ChatCmd = &cobra.Command{
 			}}, prompts...)
 		}
 
-		if ok, _ := f.GetBool("func"); ok {
+		if ok, _ := opts.GetBool("func"); ok {
 			if err := llm.BindFunction(
 				getRelativeTime,
 				"getRelativeTime",
@@ -148,7 +148,7 @@ var ChatCmd = &cobra.Command{
 			}
 		}
 
-		isTermOutput, _ := f.GetBool("term")
+		isTermOutput, _ := opts.GetBool("term")
 		messages := chat.New(prompts...)
 		if isatty.IsTerminal(os.Stdout.Fd()) {
 			if isTermOutput {
@@ -165,7 +165,7 @@ var ChatCmd = &cobra.Command{
 				fmt.Println()
 			} else if isSimpleChat {
 				// open the full chat in vim
-				dir, err := f.GetString("outdir")
+				dir, err := opts.GetString("outdir")
 				if err != nil {
 					dir = os.TempDir()
 				}
