@@ -1,24 +1,19 @@
-function! ShowPopupMiddle(message)
-  let view_width = winwidth(0)
-  let view_height = winheight(0)
-  
-  let popup_width = len(a:message) + 4
-  let popup_height = 3
-  
-  let row = (view_height - popup_height) / 2
-  let col = (view_width - popup_width) / 2
-  
-  let popup_options = {
-        \ 'line': row,
-        \ 'col': col,
-        \ 'padding': [0, 1, 0, 1],
-        \ 'border': [],
-        \ 'highlight': 'Normal',
-        \ }
-  
-  return popup_create(a:message, popup_options)
-endfunction
 
+let s:popup = -1
+
+function! ShowPopupMiddle(message)
+    if s:popup == -1
+        let popup_options = {
+                \ 'padding': [0, 1, 0, 1],
+                \ 'border': [],
+                \ 'highlight': 'Normal',
+                \ }
+        
+        return popup_create(a:message, popup_options)
+    endif
+
+    return s:popup
+endfunction
 
 function! SendToChat()
     if getline('$') != ""
@@ -42,11 +37,20 @@ function! SendToChat()
         return
     endif
 
-    echow "thinking about " . bufname()
+    let s:popup = ShowPopupMiddle("thinking")
 
 endfunction
 
 function! OnOutputToken(ch, msg)
+    if stridx(a:msg, "AI: ") != 0
+        return
+    endif
+
+    if s:popup != -1 
+        call popup_close(s:popup)
+        let s:popup = -1
+    endif
+
     norm! G
 endfunction
 
@@ -78,7 +82,7 @@ function! TryToChat()
         return
     endif
 
-    echow "thinking about " . bufname()
+    let s:popup = ShowPopupMiddle("thinking")
 endfunction
 
 function! CountTokens(ran)
