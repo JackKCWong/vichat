@@ -33,7 +33,7 @@ vichat chat -t 0.1 -m 100
 tell me a joke about Golang
 ^D
 # or output to terminal directly
-vichat chat -o tell me a joke about Vim
+vichat chat -r tell me a joke about Vim
 
 # or just simply
 vichat tell me a joke about Vim
