@@ -39,6 +39,7 @@ func init() {
 	ChatCmd.Flags().BoolP("render", "r", false, "render markdown to terminal")
 	ChatCmd.Flags().BoolP("func", "f", false, "use functions")
 	ChatCmd.Flags().StringP("system-prompt", "s", "system.prompt", "point to a system prompt file")
+	ChatCmd.Flags().StringP("outdir", "o", ".", "dir to keep chat history")
 }
 
 var ChatCmd = &cobra.Command{
@@ -164,10 +165,11 @@ var ChatCmd = &cobra.Command{
 				fmt.Println()
 			} else if isSimpleChat {
 				// open the full chat in vim
-				dir, err := os.Getwd()
+				dir, err := f.GetString("outdir")
 				if err != nil {
 					dir = os.TempDir()
 				}
+
 				tmpf, err := os.CreateTemp(dir, "*.chat")
 				if err != nil {
 					log.Fatalf("failed to create temp file: %q", err)
