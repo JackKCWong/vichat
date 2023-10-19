@@ -149,10 +149,10 @@ var ChatCmd = &cobra.Command{
 			}
 		}
 
-		isTermOutput, _ := opts.GetBool("render")
+		isRenderOutput, _ := opts.GetBool("render")
 		stream, _ := opts.GetBool("stream")
 		messages := chat.New(prompts...)
-		if isSimpleChat && !isTermOutput {
+		if isSimpleChat && !isRenderOutput {
 			// open the full chat in vim
 			dir, err := opts.GetString("outdir")
 			if err != nil {
@@ -208,7 +208,7 @@ var ChatCmd = &cobra.Command{
 					return
 				}
 
-				if isTermOutput {
+				if isRenderOutput {
 					resp = string(markdown.Render(resp, 90, 4))
 					fmt.Printf("\n%s\n", resp)
 				} else {
