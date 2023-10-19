@@ -28,15 +28,12 @@ Chat directly on cli and open the respone in Vim:
 
 ```bash
 vichat chat [options] tell me a joke about Go
-# or
-vichat chat -t 0.1 -m 100
-tell me a joke about Golang
-^D
-# or output to terminal directly
-vichat chat -r tell me a joke about Vim
 
-# or just simply
+# e.g. 
 vichat tell me a joke about Vim
+
+# or output to terminal directly
+vichat -r tell me a joke about emacs
 ```
 
 Chat with history:
@@ -62,6 +59,8 @@ USER: tell me a joke about goose
 _EOF
 
 vim test.chat
+
+ctrl+s
 ```
 
 When in Vim:
