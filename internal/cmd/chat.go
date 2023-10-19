@@ -152,7 +152,7 @@ var ChatCmd = &cobra.Command{
 		isTermOutput, _ := opts.GetBool("render")
 		stream, _ := opts.GetBool("stream")
 		messages := chat.New(prompts...)
-		if isSimpleChat {
+		if isSimpleChat && !isTermOutput {
 			// open the full chat in vim
 			dir, err := opts.GetString("outdir")
 			if err != nil {
@@ -184,18 +184,6 @@ var ChatCmd = &cobra.Command{
 			cmd.Stdout = os.Stdout
 
 			cmd.Run()
-		} else if isTermOutput {
-			resp, err := llm.Chat(context.Background(), messages)
-			if err != nil {
-				log.Fatalf("failed to send chat: %q", err.Error())
-				return
-			}
-
-			resp = string(markdown.Render(resp, 90, 4))
-
-			fmt.Println()
-			fmt.Println(resp)
-			fmt.Println()
 		} else {
 			if stream {
 				wordCount := 0
@@ -220,7 +208,12 @@ var ChatCmd = &cobra.Command{
 					return
 				}
 
-				fmt.Printf("AI: %s\n\nUSER: ", resp)
+				if isTermOutput {
+					resp = string(markdown.Render(resp, 90, 4))
+					fmt.Printf("\n%s\n", resp)
+				} else {
+					fmt.Printf("AI: %s\n\nUSER: ", resp)
+				}
 			}
 		}
 	},
