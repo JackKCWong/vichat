@@ -15,13 +15,18 @@ function! ShowPopupMiddle(message)
     return s:popup
 endfunction
 
-function! SendToChat()
+function! SendToChat(stream)
     if getline('$') != ""
         call append(line('$'), [""])
     endif
 
     " Redirect the content of the current buffer to the external command's stdin
-    let job = job_start(["vichat", "chat"], 
+    let cmd = ["vichat", "chat"]
+    if a:stream == 1
+        let cmd += ["--stream"]
+    endif
+
+    let job = job_start(cmd, 
                                 \ {
                                 \    "in_io": "buffer",
                                 \    "in_buf": bufnr(),
@@ -66,7 +71,8 @@ function! TryToChat()
     exe "vnew"
     setlocal buftype=nofile nobuflisted syntax=markdown 
 
-    let job = job_start(["vichat", "chat"], 
+    let cmd = ["vichat", "chat"]
+    let job = job_start(cmd, 
                                 \ {
                                 \    "in_io": "buffer",
                                 \    "in_buf": inbuf,
@@ -112,7 +118,7 @@ function! ChunkText(ran)
     call append(line('$'), output)
 endfunction
 
-function! StartNewChat()
+function! CloneChat()
     let pos = getcurpos()
     norm! gg
     let end_of_prompt = search('^USER:', 'n')
@@ -126,8 +132,9 @@ function! StartNewChat()
     call setline(line('$'), 'USER: ')
 endfunction
 
-command! -buffer Chat call SendToChat()
-command! -buffer NewChat call StartNewChat()
+command! -buffer Chat call SendToChat(0)
+command! -buffer ChatStream call SendToChat(1)
+command! -buffer NewChat call CloneChat()
 command! -buffer Try call TryToChat()
 command! -buffer -range Count call CountTokens(<range>)
 command! -buffer -range Chunk call ChunkText(<range>)

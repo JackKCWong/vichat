@@ -38,8 +38,9 @@ func init() {
 	ChatCmd.Flags().Float32P("temperature", "t", DefaultTemperature, "temperature, higher means more randomness.")
 	ChatCmd.Flags().BoolP("render", "r", false, "render markdown to terminal")
 	ChatCmd.Flags().BoolP("func", "f", false, "use functions")
-	ChatCmd.Flags().StringP("system-prompt", "s", "default", "point to a system prompt file")
+	ChatCmd.Flags().StringP("system-prompt", "p", "assistant", "point to a system prompt file")
 	ChatCmd.Flags().StringP("outdir", "o", ".", "dir to keep chat history")
+	ChatCmd.Flags().BoolP("stream", "s", false, "use streaming response")
 }
 
 var ChatCmd = &cobra.Command{
@@ -48,15 +49,15 @@ var ChatCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if hasDifference(vimPlugins, "vim/ftdetect", os.ExpandEnv("$HOME/.vim/ftdetect")) {
-			log.Printf("WARNING: your vichat vim plugin appears to be out of sync. run `vichat i` to install it again.")
+			log.Fatalf("vichat vim plugin appears to be out of sync. run `vichat i` to install it again.")
 		}
 
 		if hasDifference(vimPlugins, "vim/ftplugin", os.ExpandEnv("$HOME/.vim/ftplugin")) {
-			log.Printf("WARNING: your vichat vim plugin appears to be out of sync. run `vichat i` to install it again.")
+			log.Fatalf("vichat vim plugin appears to be out of sync. run `vichat i` to install it again.")
 		}
 
 		if hasDifference(vimPlugins, "vim/syntax", os.ExpandEnv("$HOME/.vim/syntax")) {
-			log.Printf("WARNING: your vichat vim plugin appears to be out of sync. run `vichat i` to install it again.")
+			log.Fatalf("vichat vim plugin appears to be out of sync. run `vichat i` to install it again.")
 		}
 
 		var opts = cmd.Flags()
@@ -105,7 +106,7 @@ var ChatCmd = &cobra.Command{
 			var promptStr []byte
 			var err error
 			optPormpt, _ := opts.GetString("system-prompt")
-			if optPormpt == "default" {
+			if optPormpt == "assistant" {
 				promptStr = []byte(DefaultSystemPrompt)
 			} else {
 				promptStr, err = os.ReadFile(optPormpt)
@@ -148,64 +149,79 @@ var ChatCmd = &cobra.Command{
 			}
 		}
 
-		isTermOutput, _ := opts.GetBool("term")
+		isTermOutput, _ := opts.GetBool("render")
+		stream, _ := opts.GetBool("stream")
 		messages := chat.New(prompts...)
-		if isatty.IsTerminal(os.Stdout.Fd()) {
-			if isTermOutput {
-				resp, err := llm.Chat(context.TODO(), messages)
+		if isSimpleChat {
+			// open the full chat in vim
+			dir, err := opts.GetString("outdir")
+			if err != nil {
+				dir = os.TempDir()
+			}
+
+			tmpf, err := os.CreateTemp(dir, "*.chat")
+			if err != nil {
+				log.Fatalf("failed to create temp file: %q", err)
+			}
+
+			fmt.Fprintf(tmpf, "# temperature=%.1f, max_tokens=%d\n\n", temperature, maxTokens)
+			printPrompts(tmpf, prompts)
+			tmpf.Close()
+
+			// invoke vim using cmd and open tmpf
+			var cmd *exec.Cmd
+			if input == "" {
+				cmd = exec.Command("vim", "-c", "norm! GkA", tmpf.Name())
+			} else {
+				if stream {
+					cmd = exec.Command("vim", "-c", "redraw|ChatStream", tmpf.Name())
+				} else {
+					cmd = exec.Command("vim", "-c", "redraw|Chat", tmpf.Name())
+				}
+			}
+
+			cmd.Stdin = os.Stdin
+			cmd.Stdout = os.Stdout
+
+			cmd.Run()
+		} else if isTermOutput {
+			resp, err := llm.Chat(context.Background(), messages)
+			if err != nil {
+				log.Fatalf("failed to send chat: %q", err.Error())
+				return
+			}
+
+			resp = string(markdown.Render(resp, 90, 4))
+
+			fmt.Println()
+			fmt.Println(resp)
+			fmt.Println()
+		} else {
+			if stream {
+				wordCount := 0
+				err := llm.ChatStream(context.Background(), func(s string) {
+					if wordCount == 0 {
+						fmt.Printf("AI: ")
+					}
+					fmt.Print(s)
+					wordCount++
+				}, messages)
+
+				if err != nil {
+					log.Fatalf("failed to stream chat: %q", err.Error())
+					return
+				}
+
+				fmt.Println("\n\nUSER: ")
+			} else {
+				resp, err := llm.Chat(context.Background(), messages)
 				if err != nil {
 					log.Fatalf("failed to send chat: %q", err.Error())
 					return
 				}
 
-				resp = string(markdown.Render(resp, 90, 4))
-
-				fmt.Println()
-				fmt.Println(resp)
-				fmt.Println()
-			} else if isSimpleChat {
-				// open the full chat in vim
-				dir, err := opts.GetString("outdir")
-				if err != nil {
-					dir = os.TempDir()
-				}
-
-				tmpf, err := os.CreateTemp(dir, "*.chat")
-				if err != nil {
-					log.Fatalf("failed to create temp file: %q", err)
-				}
-
-				fmt.Fprintf(tmpf, "# temperature=%.1f, max_tokens=%d\n\n", temperature, maxTokens)
-				printPrompts(tmpf, prompts)
-				tmpf.Close()
-
-				// invoke vim using cmd and open tmpf
-				var cmd *exec.Cmd
-				if input == "" {
-					cmd = exec.Command("vim", "-c", "norm! GkA", tmpf.Name())
-				} else {
-					cmd = exec.Command("vim", "-c", "redraw|Chat", tmpf.Name())
-				}
-
-				cmd.Stdin = os.Stdin
-				cmd.Stdout = os.Stdout
-
-				cmd.Run()
+				fmt.Printf("AI: %s\n\nUSER: ", resp)
 			}
-		} else {
-			// in vim mode, stream the output
-			fmt.Printf("AI: ")
-
-			err := llm.ChatStream(context.TODO(), func(s string) {
-				fmt.Print(s)
-			}, messages)
-
-			if err != nil {
-				log.Fatalf("failed to stream chat: %q", err.Error())
-				return
-			}
-
-			fmt.Println("\n\nUSER: ")
 		}
 	},
 }
