@@ -49,7 +49,7 @@ USER: Why did it feel down?
 _EOF
 ```
 
-Use in Vim:
+Or chat with history in Vim:
 
 ```bash
 cat <<_EOF > test.chat
