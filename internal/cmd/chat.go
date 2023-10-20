@@ -152,67 +152,73 @@ var ChatCmd = &cobra.Command{
 		isRenderOutput, _ := opts.GetBool("render")
 		stream, _ := opts.GetBool("stream")
 		messages := chat.New(prompts...)
-		if isSimpleChat && !isRenderOutput {
-			// open the full chat in vim
-			dir, err := opts.GetString("outdir")
+		if isRenderOutput {
+			resp, err := llm.Chat(context.Background(), messages)
 			if err != nil {
-				dir = os.TempDir()
+				log.Fatalf("failed to send chat: %q", err.Error())
+				return
 			}
 
-			tmpf, err := os.CreateTemp(dir, "*.chat")
-			if err != nil {
-				log.Fatalf("failed to create temp file: %q", err)
-			}
+			resp = string(markdown.Render(resp, 90, 4))
+			fmt.Printf("\n%s\n", resp)
+		} else {
+			if isSimpleChat {
+				// open the full chat in vim
+				dir, err := opts.GetString("outdir")
+				if err != nil {
+					dir = os.TempDir()
+				}
 
-			fmt.Fprintf(tmpf, "# temperature=%.1f, max_tokens=%d\n\n", temperature, maxTokens)
-			printPrompts(tmpf, prompts)
-			tmpf.Close()
+				tmpf, err := os.CreateTemp(dir, "*.chat")
+				if err != nil {
+					log.Fatalf("failed to create temp file: %q", err)
+				}
 
-			// invoke vim using cmd and open tmpf
-			var cmd *exec.Cmd
-			if input == "" {
-				cmd = exec.Command("vim", "-c", "norm! GkA", tmpf.Name())
+				fmt.Fprintf(tmpf, "# temperature=%.1f, max_tokens=%d\n\n", temperature, maxTokens)
+				printPrompts(tmpf, prompts)
+				tmpf.Close()
+
+				// invoke vim using cmd and open tmpf
+				var cmd *exec.Cmd
+				if input == "" {
+					cmd = exec.Command("vim", "-c", "norm! GkA", tmpf.Name())
+				} else {
+					if stream {
+						cmd = exec.Command("vim", "-c", "redraw|ChatStream", tmpf.Name())
+					} else {
+						cmd = exec.Command("vim", "-c", "redraw|Chat", tmpf.Name())
+					}
+				}
+
+				cmd.Stdin = os.Stdin
+				cmd.Stdout = os.Stdout
+
+				cmd.Run()
 			} else {
 				if stream {
-					cmd = exec.Command("vim", "-c", "redraw|ChatStream", tmpf.Name())
-				} else {
-					cmd = exec.Command("vim", "-c", "redraw|Chat", tmpf.Name())
-				}
-			}
+					err := llm.ChatStream(context.Background(), func(s string) {
+						fmt.Print(s)
+					}, messages)
 
-			cmd.Stdin = os.Stdin
-			cmd.Stdout = os.Stdout
-
-			cmd.Run()
-		} else {
-			if stream {
-				wordCount := 0
-				err := llm.ChatStream(context.Background(), func(s string) {
-					if wordCount == 0 {
-						fmt.Printf("AI: ")
+					if err != nil {
+						log.Fatalf("failed to stream chat: %q", err.Error())
+						return
 					}
-					fmt.Print(s)
-					wordCount++
-				}, messages)
 
-				if err != nil {
-					log.Fatalf("failed to stream chat: %q", err.Error())
-					return
-				}
-
-				fmt.Println("\n\nUSER: ")
-			} else {
-				resp, err := llm.Chat(context.Background(), messages)
-				if err != nil {
-					log.Fatalf("failed to send chat: %q", err.Error())
-					return
-				}
-
-				if isRenderOutput {
-					resp = string(markdown.Render(resp, 90, 4))
-					fmt.Printf("\n%s\n", resp)
+					fmt.Println()
 				} else {
-					fmt.Printf("AI: %s\n\nUSER: ", resp)
+					resp, err := llm.Chat(context.Background(), messages)
+					if err != nil {
+						log.Fatalf("failed to send chat: %q", err.Error())
+						return
+					}
+
+					if isRenderOutput {
+						resp = string(markdown.Render(resp, 90, 4))
+						fmt.Printf("\n%s\n", resp)
+					} else {
+						fmt.Printf("%s\n\n", resp)
+					}
 				}
 			}
 		}

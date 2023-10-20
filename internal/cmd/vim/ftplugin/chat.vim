@@ -1,8 +1,8 @@
 
-let s:popup = -1
+let w:popup = -1
 
 function! ShowPopupMiddle(message)
-    if s:popup == -1
+    if w:popup == -1
         let popup_options = {
                 \ 'padding': [0, 1, 0, 1],
                 \ 'border': [],
@@ -12,7 +12,7 @@ function! ShowPopupMiddle(message)
         return popup_create(a:message, popup_options)
     endif
 
-    return s:popup
+    return w:popup
 endfunction
 
 function! SendToChat(stream)
@@ -42,24 +42,22 @@ function! SendToChat(stream)
         return
     endif
 
-    let s:popup = ShowPopupMiddle("thinking")
+    let w:popup = ShowPopupMiddle("thinking")
 
 endfunction
 
 function! OnOutputToken(ch, msg)
-    if stridx(a:msg, "AI: ") != 0
-        return
-    endif
-
-    if s:popup != -1 
-        call popup_close(s:popup)
-        let s:popup = -1
+    if w:popup != -1 
+        norm! G0iAI: 
+        call popup_close(w:popup)
+        let w:popup = -1
     endif
 
     norm! G
 endfunction
 
 function! OnOutputEnd(ch, status)
+    call append(line('$'), ["", "USER: "])
     norm! GA
     exe "w"
 endfunction
