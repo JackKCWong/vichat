@@ -28,7 +28,7 @@ import (
 
 const DefaultTemperature = 0.7
 const DefaultMaxTokens = 1000
-const DefaultSystemPrompt = "You are a helpful assistant."
+const DefaultSystemPrompt = "You are a helpful assistant, you help people by answering their questions politely and precisely."
 
 //go:embed prompts.csv
 var awesomePrompts []byte
