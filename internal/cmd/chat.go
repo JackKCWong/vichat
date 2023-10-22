@@ -169,7 +169,7 @@ var ChatCmd = &cobra.Command{
 					dir = os.TempDir()
 				}
 
-				tmpf, err := os.CreateTemp(dir, "*.chat")
+				tmpf, err := os.CreateTemp(dir, fmt.Sprintf("%s-*.chat", strings.ReplaceAll(input, " ", "_")))
 				if err != nil {
 					log.Fatalf("failed to create temp file: %q", err)
 				}
