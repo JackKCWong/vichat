@@ -190,9 +190,9 @@ var ChatCmd = &cobra.Command{
 					cmd = exec.Command("vim", "-c", "norm! GkA", tmpf.Name())
 				} else {
 					if stream {
-						cmd = exec.Command("vim", "-c", "redraw|ChatStream", tmpf.Name())
+						cmd = exec.Command("vim", "-c", "redraw|call SetStream(1)|Chat", tmpf.Name())
 					} else {
-						cmd = exec.Command("vim", "-c", "redraw|Chat", tmpf.Name())
+						cmd = exec.Command("vim", "-c", "redraw|call SetStream(0)|Chat", tmpf.Name())
 					}
 				}
 

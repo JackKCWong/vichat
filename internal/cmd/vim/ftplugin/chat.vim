@@ -1,5 +1,6 @@
 
 let w:popup = -1
+let s:stream = 0
 
 function! ShowPopupMiddle(message)
     if w:popup == -1
@@ -15,14 +16,14 @@ function! ShowPopupMiddle(message)
     return w:popup
 endfunction
 
-function! SendToChat(stream)
+function! SendToChat()
     if getline('$') != ""
         call append(line('$'), [""])
     endif
 
     " Redirect the content of the current buffer to the external command's stdin
     let cmd = ["vichat", "chat"]
-    if a:stream == 1
+    if s:stream == 1
         let cmd += ["--stream"]
     endif
 
@@ -130,8 +131,11 @@ function! CloneChat()
     call setline(line('$'), 'USER: ')
 endfunction
 
-command! -buffer Chat call SendToChat(0)
-command! -buffer ChatStream call SendToChat(1)
+function SetStream(stream)
+    let s:stream = a:stream
+endfunction
+
+command! -buffer Chat call SendToChat()
 command! -buffer NewChat call CloneChat()
 command! -buffer Try call TryToChat()
 command! -buffer -range Count call CountTokens(<range>)
