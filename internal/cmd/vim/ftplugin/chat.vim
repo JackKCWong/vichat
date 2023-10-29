@@ -35,6 +35,8 @@ function! SendToChat()
                                 \    "out_buf": bufnr(),
                                 \    "callback": "OnOutputToken",
                                 \    "exit_cb": "OnOutputEnd",
+                                \    "err_io": "pipe",
+                                \    "err_cb": "OnOutputErr",
                                 \ })
     let s = job_status(job)
 
@@ -58,9 +60,19 @@ function! OnOutputToken(ch, msg)
 endfunction
 
 function! OnOutputEnd(ch, status)
-    call append(line('$'), ["", "USER: "])
-    norm! GA
-    exe "w"
+    if a:status == 0
+        call append(line('$'), ["", "USER: "])
+        norm! GA
+        exe "w"
+    endif
+endfunction
+
+function! OnOutputErr(ch, msg)
+    if w:popup != -1 
+        call popup_close(w:popup)
+        let w:popup = -1
+    endif
+    echohl ErrorMsg | echom a:msg | echohl None
 endfunction
 
 function! TryToChat()
