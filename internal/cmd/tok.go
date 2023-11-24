@@ -25,16 +25,29 @@ var TokCmd = &cobra.Command{
 			log.Fatalf("failed to read input: %q", err)
 		}
 
-		toks, err := vichat.Tokenize(text, model)
+		tokIDs, err := vichat.Tokenize(text, model)
 		if err != nil {
 			log.Fatalf("failed to tokenize: %q", err)
 			return
 		}
 
-		fmt.Println(len(toks))
+		if verbose, _ := f.GetBool("verbose"); verbose {
+			toks, err := vichat.Decode(tokIDs, model)
+			if err != nil {
+				log.Fatalf("failed to decode: %q", err)
+				return
+			}
+
+			for i := range tokIDs {
+				fmt.Printf("%d:\t%q\n", tokIDs[i], toks[i])
+			}
+		} else {
+			fmt.Println(len(tokIDs))
+		}
 	},
 }
 
 func init() {
 	TokCmd.Flags().StringP("model", "m", "gpt-3.5-turbo", "gpt-3.5-turbo|gpt-4")
+	TokCmd.Flags().BoolP("verbose", "v", false, "output tokens and their IDs")
 }
