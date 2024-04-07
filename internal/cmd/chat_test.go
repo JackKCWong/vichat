@@ -15,7 +15,7 @@ joke about goose
 AI: why is
 the goose a comedian
 `
-	prompts := CreatePrompts(strings.Split(script, "\n"))
+	prompts := ParseMessages(strings.Split(script, "\n"))
 
 	if len(prompts) != 3 {
 		t.Errorf("Expected 3 prompts, got %d", len(prompts))
@@ -41,7 +41,7 @@ the goose a comedian
 	}
 
 	script = `tell me a joke about vim`
-	prompts = CreatePrompts(strings.Split(script, "\n"))
+	prompts = ParseMessages(strings.Split(script, "\n"))
 	if len(prompts) != 1 {
 		t.Errorf("Expected 1 prompts, got %d", len(prompts))
 	}

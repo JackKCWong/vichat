@@ -14,7 +14,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	markdown "github.com/MichaelMure/go-term-markdown"
 	"github.com/lithammer/fuzzysearch/fuzzy"
@@ -36,9 +35,9 @@ var awesomePrompts []byte
 func init() {
 	ChatCmd.Flags().IntP("max_tokens", "m", DefaultMaxTokens, "max token for response")
 	ChatCmd.Flags().Float32P("temperature", "t", DefaultTemperature, "temperature, higher means more randomness.")
+	ChatCmd.Flags().Float32P("top-p", "p", 0, "top p for nucleus sampling. This overrides temperature since it's not recommended to set both.")
 	ChatCmd.Flags().BoolP("render", "r", false, "render markdown to terminal")
-	ChatCmd.Flags().BoolP("func", "f", false, "use functions")
-	ChatCmd.Flags().StringP("system-prompt", "p", "assistant", "point to a system prompt file")
+	ChatCmd.Flags().String("system-prompt", ":assistant:", "point to a system prompt file")
 	ChatCmd.Flags().StringP("outdir", "o", ".", "dir to keep chat history")
 	ChatCmd.Flags().BoolP("stream", "s", false, "use streaming response")
 }
@@ -62,6 +61,7 @@ var ChatCmd = &cobra.Command{
 
 		var opts = cmd.Flags()
 		var temperature float32 = DefaultTemperature
+		var topp float32 = 0
 		var maxTokens int = DefaultMaxTokens
 
 		if m, err := opts.GetInt("max_tokens"); err == nil {
@@ -70,6 +70,10 @@ var ChatCmd = &cobra.Command{
 
 		if t, err := opts.GetFloat32("temperature"); err == nil {
 			temperature = t
+		}
+
+		if p, err := opts.GetFloat32("top-p"); err == nil {
+			topp = p
 		}
 
 		var input string
@@ -86,6 +90,7 @@ var ChatCmd = &cobra.Command{
 			lines = strings.Split(string(input), "\n")
 			if strings.HasPrefix(lines[0], "#") {
 				temperature = getTemperature(lines[0])
+				topp = getTopP(lines[0])
 				maxTokens = getMaxTokens(lines[0])
 				lines = lines[0:]
 			}
@@ -95,11 +100,21 @@ var ChatCmd = &cobra.Command{
 			isSimpleChat = true
 		}
 
+		if temperature == 0 {
+			// workaround https://github.com/sashabaranov/go-openai?tab=readme-ov-file#why-dont-we-get-the-same-answer-when-specifying-a-temperature-field-of-0-and-asking-the-same-question
+			temperature = math.SmallestNonzeroFloat32
+		}
+
+		if topp != 0 {
+			// recommend to only set either
+			temperature = 0
+		}
+
 		cfg := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
 		cfg.BaseURL = os.Getenv("OPENAI_API_BASE")
 		llmClient := openai.NewClientWithConfig(cfg)
 
-		messages := CreatePrompts(lines)
+		messages := ParseMessages(lines)
 		if len(messages) == 0 {
 			log.Fatalf("invalid input")
 			return
@@ -109,7 +124,7 @@ var ChatCmd = &cobra.Command{
 			var promptStr []byte
 			var err error
 			optPormpt, _ := opts.GetString("system-prompt")
-			if optPormpt == "assistant" {
+			if optPormpt == ":assistant:" {
 				promptStr = []byte(DefaultSystemPrompt)
 			} else {
 				promptStr, err = os.ReadFile(optPormpt)
@@ -137,11 +152,6 @@ var ChatCmd = &cobra.Command{
 			}}, messages...)
 		}
 
-		if temperature == 0 {
-			// workaround https://github.com/sashabaranov/go-openai?tab=readme-ov-file#why-dont-we-get-the-same-answer-when-specifying-a-temperature-field-of-0-and-asking-the-same-question
-			temperature = math.SmallestNonzeroFloat32
-		}
-
 		isRenderOutput, _ := opts.GetBool("render")
 		stream, _ := opts.GetBool("stream")
 
@@ -150,6 +160,7 @@ var ChatCmd = &cobra.Command{
 				openai.ChatCompletionRequest{
 					Model:       openai.GPT3Dot5Turbo,
 					Temperature: temperature,
+					TopP:        topp,
 					MaxTokens:   maxTokens,
 					Messages:    messages,
 					Stream:      false,
@@ -179,7 +190,7 @@ var ChatCmd = &cobra.Command{
 					log.Fatalf("failed to create temp file: %q", err)
 				}
 
-				fmt.Fprintf(tmpf, "# temperature=%.1f, max_tokens=%d\n\n", temperature, maxTokens)
+				fmt.Fprintf(tmpf, "# temperature=%.1f, top_p=%0.1f, max_tokens=%d\n\n", temperature, topp, maxTokens)
 				printPrompts(tmpf, messages)
 				tmpf.Close()
 
@@ -205,6 +216,7 @@ var ChatCmd = &cobra.Command{
 						openai.ChatCompletionRequest{
 							Model:       openai.GPT3Dot5Turbo,
 							Temperature: temperature,
+							TopP:        topp,
 							MaxTokens:   maxTokens,
 							Messages:    messages,
 						})
@@ -235,6 +247,7 @@ var ChatCmd = &cobra.Command{
 						openai.ChatCompletionRequest{
 							Model:       openai.GPT3Dot5Turbo,
 							Temperature: temperature,
+							TopP:        topp,
 							MaxTokens:   maxTokens,
 							Messages:    messages,
 							Stream:      false,
@@ -256,7 +269,7 @@ var ChatCmd = &cobra.Command{
 	},
 }
 
-func CreatePrompts(lines []string) []openai.ChatCompletionMessage {
+func ParseMessages(lines []string) []openai.ChatCompletionMessage {
 	prompts := make([]openai.ChatCompletionMessage, 0)
 	var messageType = ""
 	var message strings.Builder
@@ -331,6 +344,21 @@ func getTemperature(text string) float32 {
 	return DefaultTemperature
 }
 
+func getTopP(text string) float32 {
+	// match top-p from a string using regex pattern top_p\W+([\d\.]+), extract the matched group
+	// and assign it to top_p variable.
+	re := regexp.MustCompile(`top_p\W+([\d\.]+)`)
+	kv := re.FindStringSubmatch(text)
+	if len(kv) > 1 {
+		t, err := strconv.ParseFloat(kv[1], 32)
+		if err == nil {
+			return float32(t)
+		}
+	}
+
+	return 0
+}
+
 func getMaxTokens(text string) int {
 	// match max_tokens from a string using regex pattern max_tokens\W+([\d\.]+), extract the matched group
 	// and assign it to temperature variable.
@@ -353,14 +381,6 @@ type TimeQuery struct {
 type TimeResp struct {
 	Time  string `json:"time"`
 	Query string `json:"query"`
-}
-
-func getRelativeTime(query TimeQuery) TimeResp {
-	return TimeResp{Time: time.Now().
-		Add(time.Duration(-query.SecondsAgo) * time.Second).
-		Format("2006-01-02 15:04:05"),
-		Query: (time.Duration(query.SecondsAgo) * time.Second).String() + " ago",
-	}
 }
 
 func printPrompts(w io.Writer, prompts []openai.ChatCompletionMessage) {
