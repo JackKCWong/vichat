@@ -21,23 +21,23 @@ the goose a comedian
 		t.Errorf("Expected 3 prompts, got %d", len(prompts))
 	}
 
-	if prompts[0].Type != "system" {
-		t.Errorf("Expected prompt type to be system, got %s", prompts[0].Type)
+	if prompts[0].Role != "system" {
+		t.Errorf("Expected prompt type to be system, got %s", prompts[0].Role)
 	}
 
-	if prompts[0].Prompt.String() != "You are\na helpful assistant.\n" {
-		t.Errorf("Expected prompt string, got %s", prompts[0].Prompt.String())
+	if prompts[0].Content != "You are\na helpful assistant.\n" {
+		t.Errorf("Expected prompt string, got %s", prompts[0].Content)
 	}
 
-	if prompts[1].Type != "user" {
-		t.Errorf("Expected prompt type to be user, got %s", prompts[1].Type)
+	if prompts[1].Role != "user" {
+		t.Errorf("Expected prompt type to be user, got %s", prompts[1].Role)
 	}
 
-	if prompts[2].Type != "assistant" {
-		t.Errorf("Expected prompt type to be ai, got %s", prompts[2].Type)
+	if prompts[2].Role != "assistant" {
+		t.Errorf("Expected prompt type to be ai, got %s", prompts[2].Role)
 	}
-	if prompts[2].Prompt.String() != "why is\nthe goose a comedian\n" {
-		t.Errorf("Expected prompt string, got %s", prompts[2].Prompt.String())
+	if prompts[2].Content != "why is\nthe goose a comedian\n" {
+		t.Errorf("Expected prompt string, got %s", prompts[2].Content)
 	}
 
 	script = `tell me a joke about vim`
@@ -46,8 +46,8 @@ the goose a comedian
 		t.Errorf("Expected 1 prompts, got %d", len(prompts))
 	}
 
-	if prompts[0].Type != "user" {
-		t.Errorf("Expected prompt type to be system, got %s", prompts[0].Type)
+	if prompts[0].Role != "user" {
+		t.Errorf("Expected prompt type to be system, got %s", prompts[0].Role)
 	}
 }
 

@@ -22,7 +22,7 @@ func init() {
 	rootCmd.AddCommand(cmd.TokCmd)
 	rootCmd.AddCommand(cmd.ChatCmd)
 	rootCmd.AddCommand(cmd.InstallCmd)
-	rootCmd.AddCommand(cmd.SplitCmd)
+	// rootCmd.AddCommand(cmd.SplitCmd)
 }
 
 func main() {

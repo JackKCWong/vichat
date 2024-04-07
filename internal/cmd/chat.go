@@ -3,9 +3,11 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"os"
 	"os/exec"
 	"regexp"
@@ -14,12 +16,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JackKCWong/vichat/internal/vichat"
 	markdown "github.com/MichaelMure/go-term-markdown"
-	"github.com/henomis/lingoose/chat"
-	"github.com/henomis/lingoose/prompt"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/mattn/go-isatty"
+	openai "github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
 
 	_ "embed"
@@ -95,9 +95,12 @@ var ChatCmd = &cobra.Command{
 			isSimpleChat = true
 		}
 
-		llm := vichat.New().WithTemperature(temperature).WithMaxTokens(maxTokens)
-		prompts := CreatePrompts(lines)
-		if len(prompts) == 0 {
+		cfg := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+		cfg.BaseURL = os.Getenv("OPENAI_API_BASE")
+		llmClient := openai.NewClientWithConfig(cfg)
+
+		messages := CreatePrompts(lines)
+		if len(messages) == 0 {
 			log.Fatalf("invalid input")
 			return
 		}
@@ -128,39 +131,35 @@ var ChatCmd = &cobra.Command{
 				}
 			}
 
-			prompts = append([]chat.PromptMessage{{
-				Type:   chat.MessageTypeSystem,
-				Prompt: prompt.New(string(promptStr)),
-			}}, prompts...)
+			messages = append([]openai.ChatCompletionMessage{{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: string(promptStr),
+			}}, messages...)
 		}
 
-		if ok, _ := opts.GetBool("func"); ok {
-			if err := llm.BindFunction(
-				getRelativeTime,
-				"getRelativeTime",
-				`Use this function to find out what time is it using a relative duration of seconds. 
-				Translate the time into a num of seconds before calling the function. 
-				e.g. 1 hour ago = getRelativeTime(3600)
-					 now = getRelativeTime(0)
-				`,
-			); err != nil {
-				log.Fatalf("failed to bind function: %q", err.Error())
-				return
-			}
+		if temperature == 0 {
+			// workaround https://github.com/sashabaranov/go-openai?tab=readme-ov-file#why-dont-we-get-the-same-answer-when-specifying-a-temperature-field-of-0-and-asking-the-same-question
+			temperature = math.SmallestNonzeroFloat32
 		}
 
 		isRenderOutput, _ := opts.GetBool("render")
 		stream, _ := opts.GetBool("stream")
-		messages := chat.New(prompts...)
+
 		if isRenderOutput {
-			resp, err := llm.Chat(context.Background(), messages)
+			resp, err := llmClient.CreateChatCompletion(context.Background(),
+				openai.ChatCompletionRequest{
+					Model:       openai.GPT3Dot5Turbo,
+					Temperature: temperature,
+					MaxTokens:   maxTokens,
+					Messages:    messages,
+					Stream:      false,
+				})
 			if err != nil {
 				log.Fatalf("failed to send chat: %q", err.Error())
 				return
 			}
 
-			resp = string(markdown.Render(resp, 90, 4))
-			fmt.Printf("\n%s\n", resp)
+			fmt.Printf("\n%s\n", markdown.Render(resp.Choices[0].Message.Content, 90, 4))
 		} else {
 			if isSimpleChat {
 				// open the full chat in vim
@@ -181,7 +180,7 @@ var ChatCmd = &cobra.Command{
 				}
 
 				fmt.Fprintf(tmpf, "# temperature=%.1f, max_tokens=%d\n\n", temperature, maxTokens)
-				printPrompts(tmpf, prompts)
+				printPrompts(tmpf, messages)
 				tmpf.Close()
 
 				// invoke vim using cmd and open tmpf
@@ -202,28 +201,54 @@ var ChatCmd = &cobra.Command{
 				cmd.Run()
 			} else {
 				if stream {
-					err := llm.ChatStream(context.Background(), func(s string) {
-						fmt.Print(s)
-					}, messages)
+					resp, err := llmClient.CreateChatCompletionStream(context.Background(),
+						openai.ChatCompletionRequest{
+							Model:       openai.GPT3Dot5Turbo,
+							Temperature: temperature,
+							MaxTokens:   maxTokens,
+							Messages:    messages,
+						})
 
 					if err != nil {
 						log.Fatalf("failed to stream chat: %q", err.Error())
 						return
 					}
 
-					fmt.Println()
+					defer resp.Close()
+					for {
+						response, err := resp.Recv()
+						if errors.Is(err, io.EOF) {
+							fmt.Println()
+							return
+						}
+
+						if err != nil {
+							fmt.Printf("\nStream error: %v\n", err)
+							return
+						}
+
+						fmt.Printf(response.Choices[0].Delta.Content)
+					}
+
 				} else {
-					resp, err := llm.Chat(context.Background(), messages)
+					resp, err := llmClient.CreateChatCompletion(context.Background(),
+						openai.ChatCompletionRequest{
+							Model:       openai.GPT3Dot5Turbo,
+							Temperature: temperature,
+							MaxTokens:   maxTokens,
+							Messages:    messages,
+							Stream:      false,
+						})
 					if err != nil {
 						log.Fatalf("failed to send chat: %q", err.Error())
 						return
 					}
 
+					res := resp.Choices[0].Message.Content
 					if isRenderOutput {
-						resp = string(markdown.Render(resp, 90, 4))
-						fmt.Printf("\n%s\n", resp)
+						fmt.Printf("\n%s\n", markdown.Render(res, 90, 4))
 					} else {
-						fmt.Printf("%s\n\n", resp)
+						fmt.Printf("%s\n\n", res)
 					}
 				}
 			}
@@ -231,9 +256,9 @@ var ChatCmd = &cobra.Command{
 	},
 }
 
-func CreatePrompts(lines []string) []chat.PromptMessage {
-	prompts := make([]chat.PromptMessage, 0)
-	var messageType chat.MessageType = ""
+func CreatePrompts(lines []string) []openai.ChatCompletionMessage {
+	prompts := make([]openai.ChatCompletionMessage, 0)
+	var messageType = ""
 	var message strings.Builder
 	for _, line := range lines {
 		if line == "" {
@@ -242,35 +267,35 @@ func CreatePrompts(lines []string) []chat.PromptMessage {
 
 		if strings.HasPrefix(line, "SYSTEM: ") {
 			if messageType != "" {
-				prompts = append(prompts, chat.PromptMessage{
-					Type:   messageType,
-					Prompt: prompt.New(message.String()),
+				prompts = append(prompts, openai.ChatCompletionMessage{
+					Role:    messageType,
+					Content: message.String(),
 				})
 				message.Reset()
 			}
-			messageType = chat.MessageTypeSystem
+			messageType = openai.ChatMessageRoleSystem
 			message.WriteString(line[8:])
 			message.WriteString("\n")
 		} else if strings.HasPrefix(line, "AI: ") {
 			if messageType != "" {
-				prompts = append(prompts, chat.PromptMessage{
-					Type:   messageType,
-					Prompt: prompt.New(message.String()),
+				prompts = append(prompts, openai.ChatCompletionMessage{
+					Role:    messageType,
+					Content: message.String(),
 				})
 				message.Reset()
 			}
-			messageType = chat.MessageTypeAssistant
+			messageType = openai.ChatMessageRoleAssistant
 			message.WriteString(line[4:])
 			message.WriteString("\n")
 		} else if strings.HasPrefix(line, "USER: ") {
 			if messageType != "" {
-				prompts = append(prompts, chat.PromptMessage{
-					Type:   messageType,
-					Prompt: prompt.New(message.String()),
+				prompts = append(prompts, openai.ChatCompletionMessage{
+					Role:    messageType,
+					Content: message.String(),
 				})
 				message.Reset()
 			}
-			messageType = chat.MessageTypeUser
+			messageType = openai.ChatMessageRoleUser
 			message.WriteString(line[6:])
 			message.WriteString("\n")
 		} else {
@@ -280,12 +305,12 @@ func CreatePrompts(lines []string) []chat.PromptMessage {
 	}
 
 	if messageType == "" {
-		messageType = chat.MessageTypeUser
+		messageType = openai.ChatMessageRoleUser
 	}
 
-	prompts = append(prompts, chat.PromptMessage{
-		Type:   messageType,
-		Prompt: prompt.New(message.String()),
+	prompts = append(prompts, openai.ChatCompletionMessage{
+		Role:    messageType,
+		Content: message.String(),
 	})
 
 	return prompts
@@ -338,18 +363,18 @@ func getRelativeTime(query TimeQuery) TimeResp {
 	}
 }
 
-func printPrompts(w io.Writer, prompts []chat.PromptMessage) {
+func printPrompts(w io.Writer, prompts []openai.ChatCompletionMessage) {
 	for _, p := range prompts {
 		prefix := ""
-		switch p.Type {
-		case chat.MessageTypeSystem:
+		switch p.Role {
+		case openai.ChatMessageRoleSystem:
 			prefix = "SYSTEM"
-		case chat.MessageTypeUser:
+		case openai.ChatMessageRoleUser:
 			prefix = "USER"
-		case chat.MessageTypeAssistant:
+		case openai.ChatMessageRoleAssistant:
 			prefix = "AI"
 		}
 
-		fmt.Fprintf(w, "%s: %s\n\n", prefix, strings.Trim(p.Prompt.String(), "\r\n"))
+		fmt.Fprintf(w, "%s: %s\n\n", prefix, strings.Trim(p.Content, "\r\n"))
 	}
 }

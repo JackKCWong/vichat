@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/JackKCWong/vichat/internal/vichat"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +19,7 @@ var SplitCmd = &cobra.Command{
 		chunkSize, _ := cmd.Flags().GetInt("chunk-size")
 		overlap, _ := cmd.Flags().GetInt("overlap")
 
-		chunks := vichat.RecursiveTextSplit(text, chunkSize, overlap)
+		chunks := RecursiveTextSplit(text, chunkSize, overlap)
 		for i := range chunks {
 			fmt.Println("--------------------------------------------")
 			fmt.Println(chunks[i])
@@ -31,4 +30,8 @@ var SplitCmd = &cobra.Command{
 func init() {
 	SplitCmd.Flags().IntP("chunk-size", "n", 1000, "chunk size")
 	SplitCmd.Flags().IntP("overlap", "o", 50, "overlap size")
+}
+
+func RecursiveTextSplit(text string, chunkSize, overlap int) []string {
+	return nil
 }
